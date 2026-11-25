@@ -31,6 +31,7 @@ export const TABLE_DEFS: TableDef[] = [
   { name: 'hypotheses', key: 'id', group: 'work', workKey: 'workId', label: '가설' },
   { name: 'glossary', key: 'id', group: 'work', workKey: 'workId', label: 'SF 용어집' },
   { name: 'lintResolutions', key: 'id', group: 'work', workKey: 'workId', label: '고증 처리 기록' },
+  { name: 'networkEdits', key: 'id', group: 'work', workKey: 'workId', label: '관계망 수동 보정' },
   { name: 'lintEntries', key: 'id', group: 'lint', label: '고증 항목' },
   { name: 'settings', key: 'key', group: 'settings', label: '설정' },
   // 6단계: { name: 'beings', key: 'id', group: 'myth', label: '신화 존재' } …
@@ -68,6 +69,8 @@ export function describeRecord(table: string, rec: Record<string, unknown>): str
       return `고증 항목 ‘${String(rec.term ?? '')}’`;
     case 'glossary':
       return `용어 ‘${String(rec.canonical ?? '')}’`;
+    case 'networkEdits':
+      return `관계망 수동 보정 (${String(rec.action ?? '')})`;
     case 'lintResolutions':
       return `고증 처리 기록 (${String(rec.status ?? '')})`;
     default:

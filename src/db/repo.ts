@@ -1,6 +1,6 @@
 // 작품·캐릭터·회차 저장 함수. 모든 쓰기는 updatedAt을 갱신한다.
 import { db } from './database';
-import type { Chapter, ChapterVersion, Character, GlossaryEntry, Hypothesis, LintEntry, LintResolution, ReaderSnapshot, Work, WorkKind } from './types';
+import type { Chapter, ChapterVersion, Character, GlossaryEntry, Hypothesis, LintEntry, LintResolution, NetworkEdit, ReaderSnapshot, Work, WorkKind } from './types';
 
 export const newId = () => crypto.randomUUID();
 const now = () => new Date().toISOString();
@@ -20,7 +20,8 @@ export async function saveWork(work: Work) {
 
 /** 작품과 딸린 캐릭터·회차를 함께 지운다. 호출 전에 확인 창을 띄울 것. */
 export async function deleteWork(workId: string) {
-  await db.transaction('rw', [db.works, db.characters, db.chapters, db.readerSnapshots, db.hypotheses, db.glossary, db.lintResolutions], async () => {
+  await db.transaction('rw', [db.works, db.characters, db.chapters, db.readerSnapshots, db.hypotheses, db.glossary, db.lintResolutions, db.networkEdits], async () => {
+    await db.networkEdits.where('workId').equals(workId).delete();
     await db.glossary.where('workId').equals(workId).delete();
     await db.lintResolutions.where('workId').equals(workId).delete();
     await db.characters.where('workId').equals(workId).delete();
@@ -52,8 +53,12 @@ export async function saveCharacter(c: Character) {
   await db.characters.put({ ...c, updatedAt: now() });
 }
 
+/** 캐릭터와 그 캐릭터가 들어간 관계망 수동 보정을 함께 지운다. 호출 전에 확인 창을 띄울 것. */
 export async function deleteCharacter(id: string) {
-  await db.characters.delete(id);
+  await db.transaction('rw', [db.characters, db.networkEdits], async () => {
+    await db.networkEdits.filter((e) => e.a === id || e.b === id).delete();
+    await db.characters.delete(id);
+  });
 }
 
 // ── 회차 ──
@@ -164,4 +169,33 @@ export async function saveResolution(r: Omit<LintResolution, 'id' | 'createdAt' 
 
 export async function deleteResolution(id: string) {
   await db.lintResolutions.delete(id);
+}
+
+// ── 인물 네트워크: 수동 보정 ──
+
+const samePair = (e: NetworkEdit, a: string, b: string) => (e.a === a && e.b === b) || (e.a === b && e.b === a);
+
+/**
+ * 두 인물 사이 수동 보정을 정한다.
+ * - 'add'/'remove'는 서로 바꿔 끼우는 관계라 한 쌍에 하나만 둔다. null이면 지운다.
+ */
+export async function setEdgeOverride(workId: string, a: string, b: string, action: 'add' | 'remove' | null) {
+  await db.transaction('rw', db.networkEdits, async () => {
+    await db.networkEdits.where('workId').equals(workId).filter((e) => samePair(e, a, b) && e.action !== 'label').delete();
+    if (action) {
+      const t = now();
+      await db.networkEdits.add({ id: newId(), workId, a, b, action, createdAt: t, updatedAt: t });
+    }
+  });
+}
+
+/** 관계 라벨. 빈 글이면 지운다 */
+export async function setEdgeLabel(workId: string, a: string, b: string, label: string) {
+  await db.transaction('rw', db.networkEdits, async () => {
+    await db.networkEdits.where('workId').equals(workId).filter((e) => samePair(e, a, b) && e.action === 'label').delete();
+    if (label.trim()) {
+      const t = now();
+      await db.networkEdits.add({ id: newId(), workId, a, b, action: 'label', label: label.trim(), createdAt: t, updatedAt: t });
+    }
+  });
 }

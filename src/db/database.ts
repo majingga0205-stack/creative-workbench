@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable, type Table } from 'dexie';
-import type { Chapter, Character, GlossaryEntry, Hypothesis, LintEntry, LintResolution, ReaderSnapshot, Setting, Work } from './types';
+import type { Chapter, Character, GlossaryEntry, Hypothesis, LintEntry, LintResolution, NetworkEdit, ReaderSnapshot, Setting, Work } from './types';
 import { LINT_SEED } from '../seed/lintSeed';
 
 /** 이 브라우저에만 해당하는 값 (백업 파일에 넣지 않음). 예: lastBackupAt */
@@ -16,6 +16,7 @@ export class WorkbenchDB extends Dexie {
   lintEntries!: EntityTable<LintEntry, 'id'>;
   glossary!: EntityTable<GlossaryEntry, 'id'>;
   lintResolutions!: EntityTable<LintResolution, 'id'>;
+  networkEdits!: EntityTable<NetworkEdit, 'id'>;
   settings!: EntityTable<Setting, 'key'>;
   meta!: EntityTable<Meta, 'key'>;
 
@@ -46,6 +47,8 @@ export class WorkbenchDB extends Dexie {
         const t = tx.table('lintEntries');
         if ((await t.count()) === 0) await t.bulkAdd(LINT_SEED);
       });
+    // v4 (5단계): 인물 네트워크 수동 보정. 새 테이블만 더한다.
+    this.version(4).stores({ networkEdits: 'id, workId, updatedAt' });
     // 새로 만든 DB에도 시드를 넣는다
     this.on('populate', async (tx) => {
       await tx.table('lintEntries').bulkAdd(LINT_SEED);

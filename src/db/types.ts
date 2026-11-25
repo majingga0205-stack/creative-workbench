@@ -26,6 +26,8 @@ export type Character = {
   name: string;
   aliases: string[];
   archetypeId?: string;
+  /** 같은 장면에 본명이 나왔을 때만 인정하는 별칭 (‘연구원’ 같은 호칭) — 5단계 */
+  nameRequiredAliases?: string[];
   traits: string[];
   note: string;
   // SPEC 타입에는 없지만 '모든 레코드에 updatedAt' 규칙에 따라 추가 (PROJECT_STATE 참고)
@@ -146,6 +148,20 @@ export type LintResolution = {
   /** scope 'position'일 때: 매칭 앞뒤 글자를 포함한 발췌 */
   context?: string;
   note?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** 인물 네트워크 수동 보정 (작품별). 계산 결과와 따로 저장해서 다시 계산해도 유지한다 — 5단계 */
+export type NetworkEdit = {
+  id: string;
+  workId: string;
+  /** 두 캐릭터 id */
+  a: string;
+  b: string;
+  action: 'add' | 'remove' | 'label';
+  /** action 'label': 관계 라벨 (가족·동료·적대 등 자유 입력) */
+  label?: string;
   createdAt: string;
   updatedAt: string;
 };

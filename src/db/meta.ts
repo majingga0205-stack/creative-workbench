@@ -28,6 +28,12 @@ type SettingValues = {
   'serial.retentionMetric': string;
   /** 시대 프리셋. '조선 중기' 같은 이름은 학자마다 구분이 달라서 고칠 수 있는 기본값으로만 둔다 (SPEC 모듈 A) */
   'lint.eraPresets': WorkSetting[];
+  /** 인물 네트워크: 구분선 없는 회차를 문단 몇 개씩 장면으로 끊나 */
+  'network.paragraphsPerScene': number;
+  /** 인물 네트워크: 같은 문단에 함께 나오면 더하는 가중치 */
+  'network.sameParagraphBonus': number;
+  /** 인물 네트워크: 존재감 하락 경고의 '최근 N화' */
+  'network.recentChapters': number;
 };
 
 export const SETTING_DEFAULTS: SettingValues = {
@@ -42,6 +48,9 @@ export const SETTING_DEFAULTS: SettingValues = {
   'serial.retentionMetric': 'views',
   // 2026-11-25 정함: 조선 중기 = 16세기 중반~17세기(양란 포함). 임시 기본값
   'lint.eraPresets': [{ label: '조선 중기', yearFrom: 1550, yearTo: 1700, region: '한반도' }],
+  'network.paragraphsPerScene': 8,
+  'network.sameParagraphBonus': 0,
+  'network.recentChapters': 5,
 };
 
 export type SettingKey = keyof SettingValues;

@@ -7,7 +7,7 @@ import { applyImport, exportData, planImport } from './backup';
 import { parseBackup } from './backupFormat';
 import Dexie from 'dexie';
 import { WorkbenchDB } from './database';
-import { createChapter, createCharacter, createHypothesis, createWork, deleteChapter, deleteWork, saveGlossary, saveResolution, saveSnapshot, saveWork, updateChapter, makeVersion } from './repo';
+import { createChapter, createCharacter, createHypothesis, createWork, deleteChapter, deleteCharacter, deleteWork, saveGlossary, saveResolution, saveSnapshot, saveWork, setEdgeLabel, setEdgeOverride, updateChapter, makeVersion } from './repo';
 import { SCHEMA_VERSION } from './migrations';
 import { LINT_SEED } from '../seed/lintSeed';
 import { setSetting } from './meta';
@@ -16,7 +16,9 @@ async function seed() {
   const a = await createWork('귀향', '게임');
   await saveWork({ ...a, setting: { label: '조선 중기', yearFrom: 1550, yearTo: 1650, region: '한반도' } });
   const b = await createWork('연재작', '소설');
-  await createCharacter(a.id, '하람');
+  const haram = await createCharacter(a.id, '하람');
+  const sua = await createCharacter(a.id, '수아');
+  await setEdgeLabel(a.id, haram.id, sua.id, '가족');
   const ch1 = await createChapter(a.id, { title: '돌아온 길', text: '“왔구나.”\n그가 말했다.' });
   await updateChapter(ch1.id, (c) => {
     const v = makeVersion('개선1', '“왔구나…”\n그는 짧게 말했다.');
@@ -48,6 +50,7 @@ async function dumpAll() {
     glossary: await db.glossary.orderBy('id').toArray(),
     lintResolutions: await db.lintResolutions.orderBy('id').toArray(),
     lintEntries: await db.lintEntries.orderBy('id').toArray(),
+    networkEdits: await db.networkEdits.orderBy('id').toArray(),
     settings: await db.settings.orderBy('key').toArray(),
   };
 }
@@ -112,7 +115,7 @@ describe('전체 내보내기 → 삭제 → 불러오기', () => {
     const parsed = parseBackup(file);
     if (!parsed.ok) throw new Error(parsed.error);
     const plan = await planImport(parsed.envelope);
-    expect(plan.totals.removeOnReplace).toBe(1 + 1 + 3 + 1 + 1 + 1 + 1); // 작품 1, 캐릭터 1, 회차 3, 독자 지표 1, 가설 1, 용어 1, 처리 기록 1
+    expect(plan.totals.removeOnReplace).toBe(1 + 2 + 3 + 1 + 1 + 1 + 1 + 1); // 작품 1, 캐릭터 2, 회차 3, 독자 지표 1, 가설 1, 용어 1, 처리 기록 1, 관계망 보정 1
     await applyImport(parsed.envelope, 'replace');
 
     expect(await db.chapters.where('workId').equals(a.id).count()).toBe(2);
@@ -197,5 +200,27 @@ describe('4단계: 고증 DB', () => {
     expect(await db.lintResolutions.count()).toBe(0);
     await deleteWork(a.id);
     expect(await db.glossary.count()).toBe(0);
+  });
+});
+
+describe('5단계: 관계망 수동 보정', () => {
+  it("추가·삭제는 한 쌍에 하나만 남고, 라벨은 따로 둔다. 빈 라벨은 지운다", async () => {
+    const { a } = await seed();
+    const [x, y] = await db.characters.where('workId').equals(a.id).toArray();
+    await setEdgeOverride(a.id, x.id, y.id, 'add');
+    await setEdgeOverride(a.id, y.id, x.id, 'remove');
+    const edits = await db.networkEdits.toArray();
+    expect(edits.filter((e) => e.action !== 'label').map((e) => e.action)).toEqual(['remove']);
+    expect(edits.find((e) => e.action === 'label')?.label).toBe('가족');
+    await setEdgeOverride(a.id, x.id, y.id, null);
+    await setEdgeLabel(a.id, x.id, y.id, '  ');
+    expect(await db.networkEdits.count()).toBe(0);
+  });
+
+  it('캐릭터를 지우면 그 캐릭터가 들어간 보정도 지운다', async () => {
+    const { a } = await seed();
+    const [x] = await db.characters.where('workId').equals(a.id).toArray();
+    await deleteCharacter(x.id);
+    expect(await db.networkEdits.count()).toBe(0);
   });
 });

@@ -30,6 +30,7 @@ export const characterSchema = z.object({
   name: z.string(),
   aliases: z.array(z.string()),
   archetypeId: z.string().optional(),
+  nameRequiredAliases: z.array(z.string()).optional(),
   traits: z.array(z.string()),
   note: z.string(),
   createdAt: isoDate,
@@ -144,6 +145,17 @@ export const lintResolutionSchema = z.object({
   updatedAt: isoDate,
 });
 
+export const networkEditSchema = z.object({
+  id: z.string().min(1),
+  workId: z.string().min(1),
+  a: z.string().min(1),
+  b: z.string().min(1),
+  action: z.enum(['add', 'remove', 'label']),
+  label: z.string().optional(),
+  createdAt: isoDate,
+  updatedAt: isoDate,
+});
+
 export const settingSchema = z.object({
   key: z.string().min(1),
   value: z.unknown(),
@@ -159,6 +171,7 @@ export const RECORD_SCHEMAS: Record<string, z.ZodType> = {
   hypotheses: hypothesisSchema,
   glossary: glossarySchema,
   lintResolutions: lintResolutionSchema,
+  networkEdits: networkEditSchema,
   lintEntries: lintEntrySchema,
   settings: settingSchema,
 };
