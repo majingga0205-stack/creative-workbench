@@ -7,6 +7,7 @@ import { useUI } from '../../store/ui';
 import { confirmDialog, toast } from '../../shared/dialogs';
 import { useAutosave } from '../../shared/useAutosave';
 import { NewWorkModal } from '../../shared/WorkSelector';
+import { useEraPresets } from '../../modules/lint/useLint';
 import { Button, Card, Empty, Field, Input, PageHeader, SaveStatus, Select, formatDateTime } from '../../shared/ui';
 
 export function useCurrentWork() {
@@ -88,6 +89,7 @@ function WorkForm({ work }: { work: Work }) {
   const valid = Object.keys(errors).length === 0;
   const { status } = useAutosave(draft, saveDraft, { valid });
   const counts = useLiveQuery(() => countWorkChildren(work.id), [work.id]);
+  const presets = useEraPresets() ?? [];
   const { selectWork, setView } = useUI();
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setDraft((d) => ({ ...d, [k]: v }));
@@ -148,6 +150,25 @@ function WorkForm({ work }: { work: Work }) {
         >
           {draft.useSetting ? (
             <div className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <Select
+                  aria-label="시대 프리셋"
+                  className="!w-auto"
+                  value=""
+                  onChange={(e) => {
+                    const p = presets[Number(e.target.value)];
+                    if (p) setDraft((d) => ({ ...d, label: p.label, yearFrom: String(p.yearFrom), yearTo: String(p.yearTo), region: p.region }));
+                  }}
+                >
+                  <option value="">프리셋 적용…</option>
+                  {presets.map((p, k) => (
+                    <option key={k} value={k}>
+                      {p.label} ({p.yearFrom}~{p.yearTo}, {p.region})
+                    </option>
+                  ))}
+                </Select>
+                <span className="ml-2 text-xs text-stone-500">프리셋은 고칠 수 있는 기본값이에요. 설정 · 백업에서 바꿔요.</span>
+              </div>
               <Field label="시대 이름" hint="화면에 보일 이름이에요. 판정은 아래 연도 범위로만 해요.">
                 <Input value={draft.label} onChange={(e) => set('label', e.target.value)} placeholder="예: 조선 중기" />
               </Field>

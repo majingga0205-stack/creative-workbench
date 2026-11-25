@@ -17,6 +17,10 @@ type UIState = {
   workId?: string;
   chapterId?: string;
   characterId?: string;
+  /** 시대 고증 린터: 시대 판정·SF 용어집 켜고 끄기 */
+  lintEra: boolean;
+  lintGlossary: boolean;
+  setLintOptions: (o: Partial<Pick<UIState, 'lintEra' | 'lintGlossary'>>) => void;
   setView: (view: View) => void;
   selectWork: (workId: string | undefined) => void;
   openChapter: (chapterId: string | undefined) => void;
@@ -28,6 +32,9 @@ export const useUI = create<UIState>()(
   persist(
     (set) => ({
       view: 'work',
+      lintEra: true,
+      lintGlossary: false,
+      setLintOptions: (o) => set(o),
       setView: (view) => set({ view }),
       selectWork: (workId) => set({ workId, chapterId: undefined, characterId: undefined }),
       openChapter: (chapterId) => set({ chapterId }),
@@ -36,7 +43,7 @@ export const useUI = create<UIState>()(
     {
       name: 'creative-workbench-ui',
       storage: createJSONStorage(() => localStorage),
-      partialize: (s) => ({ view: s.view, workId: s.workId, chapterId: s.chapterId, characterId: s.characterId }),
+      partialize: (s) => ({ view: s.view, workId: s.workId, chapterId: s.chapterId, characterId: s.characterId, lintEra: s.lintEra, lintGlossary: s.lintGlossary }),
     },
   ),
 );
