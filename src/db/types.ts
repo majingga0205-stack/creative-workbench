@@ -52,6 +52,8 @@ export type Chapter = {
   publishedAt?: string;
   endingTag?: EndingTag;
   endingTagSource?: 'auto' | 'user';
+  /** 이 회차만 다른 시대 설정 (없으면 작품 시대 설정을 쓴다) — 4단계 */
+  setting?: WorkSetting;
   // SPEC 타입에는 없지만 '모든 레코드에 updatedAt' 규칙에 따라 추가
   createdAt: string;
   updatedAt: string;
@@ -85,6 +87,65 @@ export type Hypothesis = {
   checkAfterChapter: number;
   status: HypothesisStatus;
   resultNote?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+// ── 시대 고증 린터 (4단계) ──
+
+export type LintCategory = '물건' | '음식' | '제도' | '단어' | '개념' | '호칭' | '기타';
+export const LINT_CATEGORIES: LintCategory[] = ['물건', '음식', '제도', '단어', '개념', '호칭', '기타'];
+export type LintSourceType = '1차 사료' | '연구서·논문' | '사전' | '기타';
+export const LINT_SOURCE_TYPES: LintSourceType[] = ['1차 사료', '연구서·논문', '사전', '기타'];
+
+export type LintSource = { title: string; author?: string; year?: string; locator?: string; type: LintSourceType; url?: string };
+
+/** 고증 항목 (SPEC 모듈 A, 공용 라이브러리) */
+export type LintEntry = {
+  id: string;
+  term: string;
+  aliases: string[];
+  matchMode: 'word' | 'prefix';
+  exclude: string[];
+  category: LintCategory;
+  kind: 'not_yet' | 'meaning_shift';
+  /** '한반도', '중국', '서양', '전체' … */
+  region: string;
+  appears?: { from: number; to: number; precision: '연도' | '시기' | '세기' };
+  senses?: { label: string; from?: number; to?: number; contextWords: string[] }[];
+  sources: LintSource[];
+  disputed: boolean;
+  disputeNote?: string;
+  /** 사용자가 출처 원문을 직접 확인했는가 */
+  verified: boolean;
+  note?: string;
+  updatedAt: string;
+};
+
+/** SF 세계관 용어집 (작품별) */
+export type GlossaryEntry = {
+  id: string;
+  workId: string;
+  canonical: string;
+  variants: string[];
+  status: '사용' | '금지';
+  replacement?: string;
+  note?: string;
+  updatedAt: string;
+};
+
+/** 지적 처리 기록 (작품별). 'position'은 회차 안의 그 자리(앞뒤 글자로 알아봄), 'chapter'는 그 회차 전체, 'work'는 작품 전체 */
+export type LintResolution = {
+  id: string;
+  workId: string;
+  /** 'era:<항목 id>' 또는 'glossary:<용어 id>' */
+  ruleKey: string;
+  status: '의도함' | '무시';
+  scope: 'position' | 'chapter' | 'work';
+  chapterId?: string;
+  /** scope 'position'일 때: 매칭 앞뒤 글자를 포함한 발췌 */
+  context?: string;
+  note?: string;
   createdAt: string;
   updatedAt: string;
 };
