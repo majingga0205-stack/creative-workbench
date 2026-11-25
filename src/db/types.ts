@@ -26,6 +26,8 @@ export type Character = {
   name: string;
   aliases: string[];
   archetypeId?: string;
+  /** 연결한 원형의 요소마다 고른 것 (요소 id → 선택·의도함) — 6단계 */
+  archetypeChoices?: ArchetypeChoices;
   /** 같은 장면에 본명이 나왔을 때만 인정하는 별칭 (‘연구원’ 같은 호칭) — 5단계 */
   nameRequiredAliases?: string[];
   traits: string[];
@@ -165,6 +167,38 @@ export type NetworkEdit = {
   createdAt: string;
   updatedAt: string;
 };
+
+// ── 신화 원형 아카이브 (6단계) ──
+
+export type ElementCategory = '외형' | '능력' | '성격' | '금기·약점' | '서사 기능' | '출현 장소';
+export const ELEMENT_CATEGORIES: ElementCategory[] = ['외형', '능력', '성격', '금기·약점', '서사 기능', '출현 장소'];
+export type ElementWeight = 'core' | 'common' | 'variant';
+
+export type ArchetypeElement = {
+  id: string;
+  label: string;
+  category: ElementCategory;
+  /** 핵심 3 · 흔함 2 · 일부 판본 1 */
+  weight: ElementWeight;
+  /** 캐릭터 특성에서 이 요소를 알아볼 말 */
+  keywords: string[];
+  /** 이 요소와 정면으로 어긋나는 말 */
+  opposite: string[];
+  /** 출처는 고증 린터와 같은 타입 */
+  sources: LintSource[];
+  verified: boolean;
+  note?: string;
+};
+
+export type Trap = { id: string; claim: string; correction: string; triggerWords: string[]; sources: LintSource[]; verified: boolean };
+
+/** 신화·설화 존재 (공용 라이브러리) */
+export type Being = { id: string; name: string; aliases: string[]; summary: string; elements: ArchetypeElement[]; traps: Trap[]; updatedAt: string };
+
+export type BeingRelation = { id: string; fromId: string; toId: string; label: string; sources: LintSource[]; updatedAt: string };
+
+export type ElementChoice = '가져옴' | '변형함' | '버림' | '충돌';
+export type ArchetypeChoices = Record<string, { choice?: ElementChoice; intended?: boolean }>;
 
 /** 사용자 설정값 하나. value는 JSON으로 저장 가능한 값. */
 export type Setting = {
