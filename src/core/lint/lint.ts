@@ -170,7 +170,7 @@ export function highlightSpans<T extends Pick<Finding, 'start' | 'end' | 'color'
 export function validateLintEntry(e: LintEntry): string[] {
   const errs: string[] = [];
   if (!e.term.trim()) errs.push('표제어를 적어 주세요');
-  if (!e.sources.some((s) => s.title.trim())) errs.push('출처를 1개 이상 적어 주세요');
+  if (!e.sources.some((s) => (s.title ?? '').trim())) errs.push('출처를 1개 이상 적어 주세요');
   if (e.kind === 'not_yet') {
     if (!e.appears) errs.push('등장 시기를 적어 주세요');
     else if (!Number.isFinite(e.appears.from) || !Number.isFinite(e.appears.to) || e.appears.from > e.appears.to)
@@ -190,7 +190,7 @@ export function formatAppears(a?: LintEntry['appears']): string {
 
 export function formatSources(e: Pick<LintEntry, 'sources'>): string {
   return e.sources
-    .filter((s) => s.title.trim())
+    .filter((s) => (s.title ?? '').trim())
     .map((s) => [s.author, `『${s.title}』`, s.year && `(${s.year})`, s.locator].filter(Boolean).join(' '))
     .join('; ');
 }
