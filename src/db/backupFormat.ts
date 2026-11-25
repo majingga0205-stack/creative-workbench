@@ -104,8 +104,10 @@ export function parseBackup(text: string, opts: ParseOptions = {}): ParseResult 
 
   const details: string[] = [];
   const data: TableData = {};
+  // 파일에 있는 테이블만 받는다. 없는 테이블(예전 버전 파일)은 '교체'해도 이 기기 것을 지우지 않는다.
   for (const def of tablesForScope(scope, defs)) {
-    const rows = env.data[def.name] ?? [];
+    if (!(def.name in env.data)) continue;
+    const rows = env.data[def.name];
     const schema = schemas[def.name];
     const out: Rec[] = [];
     const seen = new Set<string>();

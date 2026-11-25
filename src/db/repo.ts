@@ -1,6 +1,6 @@
 // 작품·캐릭터·회차 저장 함수. 모든 쓰기는 updatedAt을 갱신한다.
 import { db } from './database';
-import type { Chapter, ChapterVersion, Character, Hypothesis, ReaderSnapshot, Work, WorkKind } from './types';
+import type { Chapter, ChapterVersion, Character, GlossaryEntry, Hypothesis, LintEntry, LintResolution, ReaderSnapshot, Work, WorkKind } from './types';
 
 export const newId = () => crypto.randomUUID();
 const now = () => new Date().toISOString();
@@ -20,7 +20,9 @@ export async function saveWork(work: Work) {
 
 /** 작품과 딸린 캐릭터·회차를 함께 지운다. 호출 전에 확인 창을 띄울 것. */
 export async function deleteWork(workId: string) {
-  await db.transaction('rw', [db.works, db.characters, db.chapters, db.readerSnapshots, db.hypotheses], async () => {
+  await db.transaction('rw', [db.works, db.characters, db.chapters, db.readerSnapshots, db.hypotheses, db.glossary, db.lintResolutions], async () => {
+    await db.glossary.where('workId').equals(workId).delete();
+    await db.lintResolutions.where('workId').equals(workId).delete();
     await db.characters.where('workId').equals(workId).delete();
     await db.chapters.where('workId').equals(workId).delete();
     await db.readerSnapshots.where('workId').equals(workId).delete();
@@ -100,8 +102,9 @@ export async function updateChapter(id: string, change: (ch: Chapter) => Chapter
 
 /** 회차와 그 회차의 독자 지표 기록을 함께 지운다. 호출 전에 확인 창을 띄울 것. */
 export async function deleteChapter(id: string) {
-  await db.transaction('rw', [db.chapters, db.readerSnapshots], async () => {
+  await db.transaction('rw', [db.chapters, db.readerSnapshots, db.lintResolutions], async () => {
     await db.readerSnapshots.where('chapterId').equals(id).delete();
+    await db.lintResolutions.where('chapterId').equals(id).delete();
     await db.chapters.delete(id);
   });
 }
@@ -132,4 +135,33 @@ export async function updateHypothesis(id: string, patch: Partial<Omit<Hypothesi
 
 export async function deleteHypothesis(id: string) {
   await db.hypotheses.delete(id);
+}
+
+// ── 시대 고증 린터: 고증 항목 · SF 용어집 · 처리 기록 ──
+
+export async function saveLintEntry(e: LintEntry) {
+  await db.lintEntries.put({ ...e, updatedAt: now() });
+}
+
+export async function deleteLintEntry(id: string) {
+  await db.lintEntries.delete(id);
+}
+
+export async function saveGlossary(g: Omit<GlossaryEntry, 'updatedAt'>) {
+  await db.glossary.put({ ...g, updatedAt: now() });
+}
+
+export async function deleteGlossary(id: string) {
+  await db.glossary.delete(id);
+}
+
+export async function saveResolution(r: Omit<LintResolution, 'id' | 'createdAt' | 'updatedAt'>) {
+  const t = now();
+  const rec: LintResolution = { ...r, id: newId(), createdAt: t, updatedAt: t };
+  await db.lintResolutions.add(rec);
+  return rec;
+}
+
+export async function deleteResolution(id: string) {
+  await db.lintResolutions.delete(id);
 }

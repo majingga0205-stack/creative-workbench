@@ -46,8 +46,11 @@ export async function exportData(
 }
 
 /** 불러오기 미리보기 계획. 합치기는 id 전체를, 교체는 불러오는 범위만 기준으로 센다. */
+/** 파일에 들어 있는 테이블만 (예전 버전 파일에 없던 테이블은 건드리지 않는다) */
+const presentDefs = (envelope: Envelope) => tablesForScope(envelope.scope).filter((d) => d.name in envelope.data);
+
 export async function planImport(envelope: Envelope, database: WorkbenchDB = defaultDb): Promise<ImportPlan> {
-  const defs = tablesForScope(envelope.scope);
+  const defs = presentDefs(envelope);
   const existing: TableData = {};
   for (const def of defs) existing[def.name] = await database.tableByName(def.name).toArray();
   return computeImportPlan(existing, envelope.data, defs, inScopeFn(envelope.scope, envelope.workId));
@@ -66,7 +69,7 @@ export async function applyImport(
   mode: ImportMode,
   database: WorkbenchDB = defaultDb,
 ): Promise<ImportSummary> {
-  const defs = tablesForScope(envelope.scope);
+  const defs = presentDefs(envelope);
   const tables = defs.map((d) => database.tableByName(d.name));
   return database.transaction('rw', tables, async () => {
     let written = 0;

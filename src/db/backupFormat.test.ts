@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { backupFileName, buildEnvelope, computeImportPlan, parseBackup, stableStringify } from './backupFormat';
 import { TABLE_DEFS, tablesForScope } from './tables';
+import { SCHEMA_VERSION } from './migrations';
 import type { Chapter, Character, Work } from './types';
 
 const T1 = '2026-11-01T00:00:00.000Z';
@@ -80,14 +81,14 @@ describe('parseBackup', () => {
     }
   });
 
-  it('실제 v1 백업 파일(1단계에서 내보낸 것)은 v2로 바꿔 읽는다', () => {
+  it('실제 v1 백업 파일(1단계에서 내보낸 것)은 지금 버전으로 바꿔 읽고, 없던 테이블은 비워 두지 않고 빼 둔다', () => {
     const v1 = { ...buildEnvelope('all', allData()), schemaVersion: 1 };
     const r = parseBackup(JSON.stringify(v1));
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.migratedFrom).toBe(1);
-      expect(r.envelope.schemaVersion).toBe(2);
-      expect(r.envelope.data.readerSnapshots).toEqual([]);
+      expect(r.envelope.schemaVersion).toBe(SCHEMA_VERSION);
+      expect('readerSnapshots' in r.envelope.data).toBe(false);
       expect(r.envelope.data.works).toHaveLength(2);
     }
   });

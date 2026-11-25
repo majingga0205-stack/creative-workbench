@@ -7,7 +7,9 @@ import { applyImport, exportData, planImport } from './backup';
 import { parseBackup } from './backupFormat';
 import Dexie from 'dexie';
 import { WorkbenchDB } from './database';
-import { createChapter, createCharacter, createHypothesis, createWork, deleteChapter, deleteWork, saveSnapshot, saveWork, updateChapter, makeVersion } from './repo';
+import { createChapter, createCharacter, createHypothesis, createWork, deleteChapter, deleteWork, saveGlossary, saveResolution, saveSnapshot, saveWork, updateChapter, makeVersion } from './repo';
+import { SCHEMA_VERSION } from './migrations';
+import { LINT_SEED } from '../seed/lintSeed';
 import { setSetting } from './meta';
 
 async function seed() {
@@ -30,6 +32,8 @@ async function seed() {
     target: 'next',
     checkAfterChapter: 10,
   });
+  await saveGlossary({ id: 'g1', workId: a.id, canonical: '나노테크 팔찌', variants: ['나노 팔찌'], status: '사용' });
+  await saveResolution({ workId: a.id, ruleKey: 'era:seed-potato', status: '의도함', scope: 'chapter', chapterId: ch1.id });
   await setSetting('backupReminderDays', 3);
   return { a, b };
 }
@@ -41,6 +45,9 @@ async function dumpAll() {
     chapters: await db.chapters.orderBy('id').toArray(),
     readerSnapshots: await db.readerSnapshots.orderBy('id').toArray(),
     hypotheses: await db.hypotheses.orderBy('id').toArray(),
+    glossary: await db.glossary.orderBy('id').toArray(),
+    lintResolutions: await db.lintResolutions.orderBy('id').toArray(),
+    lintEntries: await db.lintEntries.orderBy('id').toArray(),
     settings: await db.settings.orderBy('key').toArray(),
   };
 }
@@ -66,7 +73,9 @@ describe('전체 내보내기 → 삭제 → 불러오기', () => {
     const parsed = parseBackup(file);
     if (!parsed.ok) throw new Error(parsed.error + parsed.details.join('\n'));
     const plan = await planImport(parsed.envelope);
-    expect(plan.totals.add).toBe(Object.values(before).reduce((n, rows) => n + rows.length, 0));
+    // 시드 고증 항목은 새 DB에도 들어 있으므로 '같음'으로 잡힌다
+    expect(plan.totals.add + plan.totals.unchanged).toBe(Object.values(before).reduce((n, rows) => n + rows.length, 0));
+    expect(plan.totals.unchanged).toBe(LINT_SEED.length);
     await applyImport(parsed.envelope, 'replace');
 
     expect(await dumpAll()).toEqual(before);
@@ -103,7 +112,7 @@ describe('전체 내보내기 → 삭제 → 불러오기', () => {
     const parsed = parseBackup(file);
     if (!parsed.ok) throw new Error(parsed.error);
     const plan = await planImport(parsed.envelope);
-    expect(plan.totals.removeOnReplace).toBe(1 + 1 + 3 + 1 + 1); // 작품 1, 캐릭터 1, 회차 3, 독자 지표 1, 가설 1
+    expect(plan.totals.removeOnReplace).toBe(1 + 1 + 3 + 1 + 1 + 1 + 1); // 작품 1, 캐릭터 1, 회차 3, 독자 지표 1, 가설 1, 용어 1, 처리 기록 1
     await applyImport(parsed.envelope, 'replace');
 
     expect(await db.chapters.where('workId').equals(a.id).count()).toBe(2);
@@ -123,7 +132,7 @@ describe('지우기와 DB 구조 변경', () => {
     expect(await db.chapters.where('workId').equals(a.id).count()).toBe(0);
   });
 
-  it('v1 구조 DB(1단계)에 있던 데이터는 v2로 열어도 그대로 남는다', async () => {
+  it('v1 구조 DB(1단계)에 있던 데이터는 지금 버전으로 열어도 그대로 남고, 고증 시드가 들어간다', async () => {
     const name = 'upgrade-test';
     const old = new Dexie(name);
     old.version(1).stores({
@@ -139,10 +148,54 @@ describe('지우기와 DB 구조 변경', () => {
 
     const upgraded = new WorkbenchDB(name);
     await upgraded.open();
-    expect(upgraded.verno).toBe(2);
+    expect(upgraded.verno).toBe(SCHEMA_VERSION);
     expect((await upgraded.works.get('w1'))?.title).toBe('귀향');
     expect(await upgraded.readerSnapshots.count()).toBe(0);
+    expect(await upgraded.lintEntries.count()).toBe(LINT_SEED.length);
     upgraded.close();
     await Dexie.delete(name);
+  });
+});
+
+describe('4단계: 고증 DB', () => {
+  it('새 DB에는 고증 시드 5개가 들어 있다 (전부 미검증)', async () => {
+    const all = await db.lintEntries.toArray();
+    expect(all.map((e) => e.term).sort()).toEqual(['감자', '경제', '고구마', '고추', '담배']);
+    expect(all.every((e) => !e.verified)).toBe(true);
+  });
+
+  it("'고증 DB만' 내보내기 → 불러오기", async () => {
+    await db.lintEntries.update('seed-potato', { verified: true, updatedAt: '2026-12-01T00:00:00.000Z' });
+    const file = JSON.stringify(await exportData('lint'));
+    const parsed = parseBackup(file);
+    if (!parsed.ok) throw new Error(parsed.error);
+    expect(Object.keys(parsed.envelope.data)).toEqual(['lintEntries']);
+    await wipe();
+    await applyImport(parsed.envelope, 'merge');
+    expect((await db.lintEntries.get('seed-potato'))?.verified).toBe(true);
+  });
+
+  it("예전(v2) '전체' 백업으로 교체해도 그 파일에 없던 고증 DB·용어집은 지우지 않는다", async () => {
+    const { a } = await seed();
+    const v2 = { ...(await exportData('all')), schemaVersion: 2 } as Record<string, unknown> & { data: Record<string, unknown[]> };
+    for (const t of ['lintEntries', 'glossary', 'lintResolutions']) delete v2.data[t];
+    await db.lintEntries.update('seed-economy', { note: '이 기기에서 고침' });
+    const parsed = parseBackup(JSON.stringify(v2));
+    if (!parsed.ok) throw new Error(parsed.error + parsed.details.join());
+    expect(parsed.migratedFrom).toBe(2);
+    const plan = await planImport(parsed.envelope);
+    expect(plan.tables.map((t) => t.table)).not.toContain('lintEntries');
+    await applyImport(parsed.envelope, 'replace');
+    expect((await db.lintEntries.get('seed-economy'))?.note).toBe('이 기기에서 고침');
+    expect(await db.glossary.where('workId').equals(a.id).count()).toBe(1);
+  });
+
+  it('회차·작품을 지우면 처리 기록·용어집도 지운다', async () => {
+    const { a } = await seed();
+    const r = (await db.lintResolutions.toArray())[0];
+    await deleteChapter(r.chapterId!);
+    expect(await db.lintResolutions.count()).toBe(0);
+    await deleteWork(a.id);
+    expect(await db.glossary.count()).toBe(0);
   });
 });

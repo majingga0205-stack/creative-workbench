@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable, type Table } from 'dexie';
-import type { Chapter, Character, Hypothesis, ReaderSnapshot, Setting, Work } from './types';
+import type { Chapter, Character, GlossaryEntry, Hypothesis, LintEntry, LintResolution, ReaderSnapshot, Setting, Work } from './types';
+import { LINT_SEED } from '../seed/lintSeed';
 
 /** 이 브라우저에만 해당하는 값 (백업 파일에 넣지 않음). 예: lastBackupAt */
 export type Meta = { key: string; value: unknown };
@@ -12,6 +13,9 @@ export class WorkbenchDB extends Dexie {
   chapters!: EntityTable<Chapter, 'id'>;
   readerSnapshots!: EntityTable<ReaderSnapshot, 'id'>;
   hypotheses!: EntityTable<Hypothesis, 'id'>;
+  lintEntries!: EntityTable<LintEntry, 'id'>;
+  glossary!: EntityTable<GlossaryEntry, 'id'>;
+  lintResolutions!: EntityTable<LintResolution, 'id'>;
   settings!: EntityTable<Setting, 'key'>;
   meta!: EntityTable<Meta, 'key'>;
 
@@ -30,6 +34,21 @@ export class WorkbenchDB extends Dexie {
     this.version(2).stores({
       readerSnapshots: 'id, workId, chapterId, updatedAt',
       hypotheses: 'id, workId, updatedAt',
+    });
+    // v3 (4단계): 시대 고증 린터. 고증 DB(공용)·SF 용어집·처리 기록(작품별). 고증 DB에는 SPEC 시드 5개를 넣는다.
+    this.version(3)
+      .stores({
+        lintEntries: 'id, term, updatedAt',
+        glossary: 'id, workId, updatedAt',
+        lintResolutions: 'id, workId, chapterId, ruleKey, updatedAt',
+      })
+      .upgrade(async (tx) => {
+        const t = tx.table('lintEntries');
+        if ((await t.count()) === 0) await t.bulkAdd(LINT_SEED);
+      });
+    // 새로 만든 DB에도 시드를 넣는다
+    this.on('populate', async (tx) => {
+      await tx.table('lintEntries').bulkAdd(LINT_SEED);
     });
   }
 

@@ -1,7 +1,7 @@
 import { db as defaultDb, type WorkbenchDB } from './database';
 import { DEFAULT_RHYTHM_THRESHOLDS, type RhythmThresholds } from '../core/rhythm/types';
 import type { ParagraphMode } from '../core/korean';
-import type { Setting } from './types';
+import type { Setting, WorkSetting } from './types';
 
 export async function getMeta<T>(key: string, database: WorkbenchDB = defaultDb): Promise<T | undefined> {
   return (await database.meta.get(key))?.value as T | undefined;
@@ -26,6 +26,8 @@ type SettingValues = {
   'serial.readerMetrics': ReaderMetricDef[];
   /** 연독률을 계산할 지표 key */
   'serial.retentionMetric': string;
+  /** 시대 프리셋. '조선 중기' 같은 이름은 학자마다 구분이 달라서 고칠 수 있는 기본값으로만 둔다 (SPEC 모듈 A) */
+  'lint.eraPresets': WorkSetting[];
 };
 
 export const SETTING_DEFAULTS: SettingValues = {
@@ -38,6 +40,8 @@ export const SETTING_DEFAULTS: SettingValues = {
     { key: 'comments', label: '댓글수' },
   ],
   'serial.retentionMetric': 'views',
+  // 2026-11-25 정함: 조선 중기 = 16세기 중반~17세기(양란 포함). 임시 기본값
+  'lint.eraPresets': [{ label: '조선 중기', yearFrom: 1550, yearTo: 1700, region: '한반도' }],
 };
 
 export type SettingKey = keyof SettingValues;

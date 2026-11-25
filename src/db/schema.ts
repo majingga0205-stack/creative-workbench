@@ -3,6 +3,10 @@ import { z } from 'zod';
 
 const isoDate = z.string().min(1, '날짜가 비어 있어요');
 
+const settingFields = z
+  .object({ label: z.string(), yearFrom: z.number().int(), yearTo: z.number().int(), region: z.string() })
+  .refine((s) => s.yearFrom <= s.yearTo, { message: '시대 설정의 시작 연도가 끝 연도보다 늦어요' });
+
 export const workSchema = z.object({
   id: z.string().min(1),
   title: z.string(),
@@ -50,6 +54,7 @@ export const chapterSchema = z
     publishedAt: z.string().optional(),
     endingTag: z.enum(['절단', '여운', '정리']).optional(),
     endingTagSource: z.enum(['auto', 'user']).optional(),
+    setting: settingFields.optional(),
     createdAt: isoDate,
     updatedAt: isoDate,
   })
@@ -87,6 +92,58 @@ export const hypothesisSchema = z.object({
   updatedAt: isoDate,
 });
 
+const lintSourceSchema = z.object({
+  title: z.string(),
+  author: z.string().optional(),
+  year: z.string().optional(),
+  locator: z.string().optional(),
+  type: z.enum(['1차 사료', '연구서·논문', '사전', '기타']),
+  url: z.string().optional(),
+});
+
+export const lintEntrySchema = z.object({
+  id: z.string().min(1),
+  term: z.string().min(1),
+  aliases: z.array(z.string()),
+  matchMode: z.enum(['word', 'prefix']),
+  exclude: z.array(z.string()),
+  category: z.enum(['물건', '음식', '제도', '단어', '개념', '호칭', '기타']),
+  kind: z.enum(['not_yet', 'meaning_shift']),
+  region: z.string(),
+  appears: z.object({ from: z.number(), to: z.number(), precision: z.enum(['연도', '시기', '세기']) }).optional(),
+  senses: z.array(z.object({ label: z.string(), from: z.number().optional(), to: z.number().optional(), contextWords: z.array(z.string()) })).optional(),
+  sources: z.array(lintSourceSchema),
+  disputed: z.boolean(),
+  disputeNote: z.string().optional(),
+  verified: z.boolean(),
+  note: z.string().optional(),
+  updatedAt: isoDate,
+});
+
+export const glossarySchema = z.object({
+  id: z.string().min(1),
+  workId: z.string().min(1),
+  canonical: z.string().min(1),
+  variants: z.array(z.string()),
+  status: z.enum(['사용', '금지']),
+  replacement: z.string().optional(),
+  note: z.string().optional(),
+  updatedAt: isoDate,
+});
+
+export const lintResolutionSchema = z.object({
+  id: z.string().min(1),
+  workId: z.string().min(1),
+  ruleKey: z.string().min(1),
+  status: z.enum(['의도함', '무시']),
+  scope: z.enum(['position', 'chapter', 'work']),
+  chapterId: z.string().optional(),
+  context: z.string().optional(),
+  note: z.string().optional(),
+  createdAt: isoDate,
+  updatedAt: isoDate,
+});
+
 export const settingSchema = z.object({
   key: z.string().min(1),
   value: z.unknown(),
@@ -100,6 +157,9 @@ export const RECORD_SCHEMAS: Record<string, z.ZodType> = {
   chapters: chapterSchema,
   readerSnapshots: readerSnapshotSchema,
   hypotheses: hypothesisSchema,
+  glossary: glossarySchema,
+  lintResolutions: lintResolutionSchema,
+  lintEntries: lintEntrySchema,
   settings: settingSchema,
 };
 
