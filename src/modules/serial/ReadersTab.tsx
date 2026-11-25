@@ -88,8 +88,8 @@ function SnapshotForm({ workId, chapters, settings }: { workId: string; chapters
         <table className="w-full text-sm" data-testid="snapshot-form">
           <thead className="sticky top-0 bg-white">
             <tr className="border-b border-stone-200 text-left text-xs text-stone-500">
-              <th className="py-1.5 font-medium">회차</th>
-              <th className="py-1.5 font-medium">게시 후 일수</th>
+              <th className="w-px py-1.5 pr-3 font-medium whitespace-nowrap">회차</th>
+              <th className="w-px py-1.5 pr-3 font-medium whitespace-nowrap">게시 후 일수</th>
               {metrics.map((m) => (
                 <th key={m.key} className="py-1.5 font-medium">
                   {m.label}
@@ -102,14 +102,14 @@ function SnapshotForm({ workId, chapters, settings }: { workId: string; chapters
               const d = dayFor(c);
               return (
                 <tr key={c.id} className="border-b border-stone-100">
-                  <td className="py-1 pr-2">{chapterLabel(c)}</td>
-                  <td className="py-1 pr-2 text-stone-500 tabular-nums">{d !== undefined ? `${d}일` : `${manualDay}일 (직접)`}</td>
+                  <td className="py-1 pr-3 whitespace-nowrap">{chapterLabel(c)}</td>
+                  <td className="py-1 pr-3 whitespace-nowrap text-stone-500 tabular-nums">{d !== undefined ? `${d}일` : `${manualDay}일 (직접)`}</td>
                   {metrics.map((m) => (
                     <td key={m.key} className="py-1 pr-2">
                       <Input
                         aria-label={`${c.number}화 ${m.label}`}
                         inputMode="numeric"
-                        className="!py-1"
+                        className="!w-32 !py-1"
                         value={vals[c.id]?.[m.key] ?? ''}
                         onChange={(e) => setVals((v) => ({ ...v, [c.id]: { ...v[c.id], [m.key]: e.target.value } }))}
                       />
@@ -186,7 +186,7 @@ function RetentionView({
     return (
       <Card title="연독률">
         <p className="text-sm text-stone-600" data-testid="retention-waiting">
-          {metricLabel}을(를) 기록한 회차가 {retention.valuedCount}개예요. {MIN_CHAPTERS_FOR_CHART}개 이상이면 연독률 그래프와 꺾이는 구간이 보여요.
+          {metricLabel} 기록이 있는 회차가 {retention.valuedCount}개예요. {MIN_CHAPTERS_FOR_CHART}개 이상이면 연독률 그래프와 꺾이는 구간이 보여요.
         </p>
       </Card>
     );
