@@ -191,6 +191,7 @@ export function formatAppears(a?: LintEntry['appears']): string {
 export function formatSources(e: Pick<LintEntry, 'sources'>): string {
   return e.sources
     .filter((s) => (s.title ?? '').trim())
-    .map((s) => [s.author, `『${s.title}』`, s.year && `(${s.year})`, s.locator].filter(Boolean).join(' '))
+    // 책·논문 제목만 『』로 묶는다 ('기타'는 학설·구전 등이라 그대로)
+    .map((s) => [s.author, s.type === '기타' ? s.title : `『${s.title}』`, s.year && `(${s.year})`, s.locator].filter(Boolean).join(' '))
     .join('; ');
 }

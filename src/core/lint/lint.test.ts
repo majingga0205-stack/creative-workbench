@@ -200,7 +200,8 @@ describe('리포트', () => {
     expect(rows).toHaveLength(2);
     expect(rows[1]).toMatchObject({ chapter: '1화 돌아온 길', match: '감자', item: '감자', period: '1801~1850년 (시기)', verified: '미검증 · 이설 있음', status: '미처리' });
     expect(rows[1].before.length).toBeLessThanOrEqual(20);
-    expect(rows[1].basis).toContain('오주연문장전산고');
+    expect(rows[1].basis).toContain('이규경 『오주연문장전산고』 만주 경유 기록');
+    expect(rows[1].basis).toContain('; 1832년 로드 애머스트호 전래설');
   });
 
   it('Markdown: 머리 정보와 색별 개수', () => {

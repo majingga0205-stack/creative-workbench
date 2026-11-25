@@ -53,7 +53,8 @@ export default function LintModule() {
           <button type="button" className="underline" onClick={() => setView('chapters')}>회차 원고</button>에 원고를 넣으면 회차로 검사하고 처리 기록을 남길 수 있어요.
         </p>
       )}
-      {tab === 'check' && work && <CheckTab key={work.id} work={work} chapters={chapters} entries={entries} glossary={glossary} resolutions={resolutions} />}
+      {/* 회차 목록이 늦게 도착하면(작품을 막 고른 직후) 처음 상태를 다시 잡도록 key에 '회차 있음'을 넣는다 */}
+      {tab === 'check' && work && <CheckTab key={`${work.id}:${chapters.length > 0}`} work={work} chapters={chapters} entries={entries} glossary={glossary} resolutions={resolutions} />}
       {tab === 'glossary' && work && <GlossaryTab workId={work.id} glossary={glossary} />}
     </div>
   );
