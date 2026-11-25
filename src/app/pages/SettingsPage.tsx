@@ -11,6 +11,7 @@ import { autoBackupToFile, exportToFile } from '../../shared/backupActions';
 import { confirmDialog, toast } from '../../shared/dialogs';
 import { requestPersist } from '../../shared/storagePersist';
 import { useAutosave } from '../../shared/useAutosave';
+import { SerialSettingsCard } from '../../modules/serial/SerialSettingsCard';
 import { Badge, Button, Card, Field, Input, PageHeader, SaveStatus, Select, formatDateTime } from '../../shared/ui';
 
 export default function SettingsPage() {
@@ -20,6 +21,7 @@ export default function SettingsPage() {
       <ExportCard />
       <ImportCard />
       <ReminderCard />
+      <SerialSettingsCard />
       <StorageCard />
     </div>
   );

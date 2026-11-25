@@ -3,8 +3,8 @@ import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/database';
 import { readSetting } from '../../db/meta';
-import type { Chapter, ChapterVersion } from '../../db/types';
-import { computeRhythm, type RhythmMetrics, type RhythmOptions } from '../../core/rhythm';
+import type { Chapter, ChapterVersion, ReaderSnapshot } from '../../db/types';
+import { computeRhythm, pickValues, type ChapterRow, type RhythmMetrics, type RhythmOptions } from '../../core/rhythm';
 
 export function useSerialSettings() {
   const rows = useLiveQuery(() => db.settings.toArray(), []);
@@ -47,3 +47,30 @@ export function rhythmOf(versionId: string, text: string, options: RhythmOptions
 export const pct = (x: number, digits = 1) => `${(x * 100).toFixed(digits)}%`;
 export const num = (x: number, digits = 1) => (Number.isInteger(x) ? x.toLocaleString('ko-KR') : x.toFixed(digits));
 export const chapterLabel = (c: Pick<Chapter, 'number' | 'title'>) => `${c.number}화${c.title ? ` ${c.title}` : ''}`;
+
+// ── 독자 지표 · 가설용 ──
+
+export function useSnapshots(workId: string | undefined) {
+  return useLiveQuery(() => (workId ? db.readerSnapshots.where('workId').equals(workId).toArray() : []), [workId]);
+}
+
+export function useHypotheses(workId: string | undefined) {
+  return useLiveQuery(
+    async () => (workId ? (await db.hypotheses.where('workId').equals(workId).toArray()).sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : []),
+    [workId],
+  );
+}
+
+/** 가설 비교용 회차 요약: 현재 버전의 원고 지표 + 기준 일수의 독자 지표 */
+export function buildChapterRows(chapters: Chapter[], snapshots: ReaderSnapshot[], settings: SerialSettings): ChapterRow[] {
+  const picked = Object.fromEntries(
+    settings.readerMetrics.map((m) => [m.key, pickValues(chapters, snapshots, m.key, settings.thresholds.compareDay)]),
+  );
+  return chapters.map((c) => {
+    const v = activeVersion(c);
+    const r = rhythmOf(v.id, v.text, settings.rhythmOptions);
+    const metrics: Record<string, number | undefined> = {};
+    for (const m of settings.readerMetrics) metrics[m.key] = picked[m.key].find((p) => p.chapterId === c.id)?.value;
+    return { number: c.number, endingTag: c.endingTag, dialogueRatio: r.dialogue.charRatio, length: r.chars.withoutSpaces, metrics };
+  });
+}
