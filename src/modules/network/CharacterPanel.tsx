@@ -67,13 +67,13 @@ function RelationRow({ workId, a, other, data, edits }: { workId: string; a: str
 
   return (
     <li className={`flex flex-wrap items-center gap-1.5 rounded-md px-2 py-1 ${edge ? 'bg-stone-50' : ''}`}>
-      <span className="w-20 truncate font-medium">{other.name}</span>
-      <span className="w-24 text-xs text-stone-500 tabular-nums">
+      <span className="w-14 truncate font-medium">{other.name}</span>
+      <span className="w-20 text-xs text-stone-500 tabular-nums">
         {edge ? (edge.manual ? '직접 더함' : `함께 ${edge.scenes}장면`) : override === 'remove' ? '직접 뺌' : '관계 없음'}
       </span>
       <Input
         aria-label={`${other.name} 관계 라벨`}
-        className="!w-28 !py-0.5 text-xs"
+        className="!w-24 !py-0.5 text-xs"
         placeholder="라벨 (가족 등)"
         value={label}
         disabled={!edge}
