@@ -31,6 +31,7 @@ export const characterSchema = z.object({
   aliases: z.array(z.string()),
   archetypeId: z.string().optional(),
   nameRequiredAliases: z.array(z.string()).optional(),
+  archetypeChoices: z.record(z.string(), z.object({ choice: z.enum(['가져옴', '변형함', '버림', '충돌']).optional(), intended: z.boolean().optional() })).optional(),
   traits: z.array(z.string()),
   note: z.string(),
   createdAt: isoDate,
@@ -156,6 +157,46 @@ export const networkEditSchema = z.object({
   updatedAt: isoDate,
 });
 
+const elementSchema = z.object({
+  id: z.string().min(1),
+  label: z.string(),
+  category: z.enum(['외형', '능력', '성격', '금기·약점', '서사 기능', '출현 장소']),
+  weight: z.enum(['core', 'common', 'variant']),
+  keywords: z.array(z.string()),
+  opposite: z.array(z.string()),
+  sources: z.array(lintSourceSchema),
+  verified: z.boolean(),
+  note: z.string().optional(),
+});
+
+const trapSchema = z.object({
+  id: z.string().min(1),
+  claim: z.string(),
+  correction: z.string(),
+  triggerWords: z.array(z.string()),
+  sources: z.array(lintSourceSchema),
+  verified: z.boolean(),
+});
+
+export const beingSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  aliases: z.array(z.string()),
+  summary: z.string(),
+  elements: z.array(elementSchema),
+  traps: z.array(trapSchema),
+  updatedAt: isoDate,
+});
+
+export const beingRelationSchema = z.object({
+  id: z.string().min(1),
+  fromId: z.string().min(1),
+  toId: z.string().min(1),
+  label: z.string(),
+  sources: z.array(lintSourceSchema),
+  updatedAt: isoDate,
+});
+
 export const settingSchema = z.object({
   key: z.string().min(1),
   value: z.unknown(),
@@ -173,6 +214,8 @@ export const RECORD_SCHEMAS: Record<string, z.ZodType> = {
   lintResolutions: lintResolutionSchema,
   networkEdits: networkEditSchema,
   lintEntries: lintEntrySchema,
+  beings: beingSchema,
+  beingRelations: beingRelationSchema,
   settings: settingSchema,
 };
 

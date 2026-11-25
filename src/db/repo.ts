@@ -1,6 +1,6 @@
 // 작품·캐릭터·회차 저장 함수. 모든 쓰기는 updatedAt을 갱신한다.
 import { db } from './database';
-import type { Chapter, ChapterVersion, Character, GlossaryEntry, Hypothesis, LintEntry, LintResolution, NetworkEdit, ReaderSnapshot, Work, WorkKind } from './types';
+import type { Being, BeingRelation, Chapter, ChapterVersion, Character, ElementChoice, GlossaryEntry, Hypothesis, LintEntry, LintResolution, NetworkEdit, ReaderSnapshot, Work, WorkKind } from './types';
 
 export const newId = () => crypto.randomUUID();
 const now = () => new Date().toISOString();
@@ -197,5 +197,57 @@ export async function setEdgeLabel(workId: string, a: string, b: string, label: 
       const t = now();
       await db.networkEdits.add({ id: newId(), workId, a, b, action: 'label', label: label.trim(), createdAt: t, updatedAt: t });
     }
+  });
+}
+
+// ── 신화 원형 아카이브: 존재 · 존재 관계 · 캐릭터 대조 ──
+
+export async function saveBeing(b: Being) {
+  await db.beings.put({ ...b, updatedAt: now() });
+}
+
+/** 존재를 지우면 그 존재가 들어간 관계도 지우고, 연결된 캐릭터(모든 작품)의 연결과 선택을 푼다. 호출 전에 확인 창을 띄울 것. */
+export async function deleteBeing(id: string) {
+  await db.transaction('rw', [db.beings, db.beingRelations, db.characters], async () => {
+    await db.beingRelations.filter((r) => r.fromId === id || r.toId === id).delete();
+    await db.characters.filter((c) => c.archetypeId === id).modify((c) => {
+      delete c.archetypeId;
+      delete c.archetypeChoices;
+      c.updatedAt = now();
+    });
+    await db.beings.delete(id);
+  });
+}
+
+export async function saveBeingRelation(r: Omit<BeingRelation, 'updatedAt'>) {
+  await db.beingRelations.put({ ...r, updatedAt: now() });
+}
+
+export async function deleteBeingRelation(id: string) {
+  await db.beingRelations.delete(id);
+}
+
+/** 캐릭터를 존재에 연결한다. 다른 존재로 바꾸면 요소 선택은 비운다. undefined면 연결을 푼다. */
+export async function linkArchetype(characterId: string, beingId: string | undefined) {
+  await db.characters.where('id').equals(characterId).modify((c) => {
+    if (c.archetypeId !== beingId) delete c.archetypeChoices;
+    if (beingId) c.archetypeId = beingId;
+    else delete c.archetypeId;
+    c.updatedAt = now();
+  });
+}
+
+/** 요소 하나의 선택(가져옴·변형함·버림·충돌, 없으면 제안을 따름)과 의도함 */
+export async function setElementChoice(characterId: string, elementId: string, patch: { choice?: ElementChoice | null; intended?: boolean }) {
+  await db.characters.where('id').equals(characterId).modify((c) => {
+    const all = { ...(c.archetypeChoices ?? {}) };
+    const cur = { ...(all[elementId] ?? {}) };
+    if (patch.choice === null) delete cur.choice;
+    else if (patch.choice) cur.choice = patch.choice;
+    if (patch.intended !== undefined) cur.intended = patch.intended;
+    if (!cur.choice && !cur.intended) delete all[elementId];
+    else all[elementId] = cur;
+    c.archetypeChoices = all;
+    c.updatedAt = now();
   });
 }

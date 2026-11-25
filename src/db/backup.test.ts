@@ -7,9 +7,10 @@ import { applyImport, exportData, planImport } from './backup';
 import { parseBackup } from './backupFormat';
 import Dexie from 'dexie';
 import { WorkbenchDB } from './database';
-import { createChapter, createCharacter, createHypothesis, createWork, deleteChapter, deleteCharacter, deleteWork, saveGlossary, saveResolution, saveSnapshot, saveWork, setEdgeLabel, setEdgeOverride, updateChapter, makeVersion } from './repo';
+import { createChapter, createCharacter, createHypothesis, createWork, deleteBeing, deleteChapter, deleteCharacter, deleteWork, linkArchetype, saveBeingRelation, saveGlossary, saveResolution, saveSnapshot, saveWork, setEdgeLabel, setEdgeOverride, setElementChoice, updateChapter, makeVersion } from './repo';
 import { SCHEMA_VERSION } from './migrations';
 import { LINT_SEED } from '../seed/lintSeed';
+import { MYTH_SEED } from '../seed/mythSeed';
 import { setSetting } from './meta';
 
 async function seed() {
@@ -51,6 +52,8 @@ async function dumpAll() {
     lintResolutions: await db.lintResolutions.orderBy('id').toArray(),
     lintEntries: await db.lintEntries.orderBy('id').toArray(),
     networkEdits: await db.networkEdits.orderBy('id').toArray(),
+    beings: await db.beings.orderBy('id').toArray(),
+    beingRelations: await db.beingRelations.orderBy('id').toArray(),
     settings: await db.settings.orderBy('key').toArray(),
   };
 }
@@ -76,9 +79,9 @@ describe('전체 내보내기 → 삭제 → 불러오기', () => {
     const parsed = parseBackup(file);
     if (!parsed.ok) throw new Error(parsed.error + parsed.details.join('\n'));
     const plan = await planImport(parsed.envelope);
-    // 시드 고증 항목은 새 DB에도 들어 있으므로 '같음'으로 잡힌다
+    // 시드(고증 항목·신화 존재)는 새 DB에도 들어 있으므로 '같음'으로 잡힌다
     expect(plan.totals.add + plan.totals.unchanged).toBe(Object.values(before).reduce((n, rows) => n + rows.length, 0));
-    expect(plan.totals.unchanged).toBe(LINT_SEED.length);
+    expect(plan.totals.unchanged).toBe(LINT_SEED.length + MYTH_SEED.length);
     await applyImport(parsed.envelope, 'replace');
 
     expect(await dumpAll()).toEqual(before);
@@ -155,6 +158,7 @@ describe('지우기와 DB 구조 변경', () => {
     expect((await upgraded.works.get('w1'))?.title).toBe('귀향');
     expect(await upgraded.readerSnapshots.count()).toBe(0);
     expect(await upgraded.lintEntries.count()).toBe(LINT_SEED.length);
+    expect(await upgraded.beings.count()).toBe(MYTH_SEED.length);
     upgraded.close();
     await Dexie.delete(name);
   });
@@ -222,5 +226,38 @@ describe('5단계: 관계망 수동 보정', () => {
     const [x] = await db.characters.where('workId').equals(a.id).toArray();
     await deleteCharacter(x.id);
     expect(await db.networkEdits.count()).toBe(0);
+  });
+});
+
+describe('6단계: 신화 DB와 캐릭터 대조', () => {
+  it('새 DB에는 신화 시드 3개가 들어 있다', async () => {
+    expect((await db.beings.toArray()).map((b) => b.name).sort()).toEqual(['구미호', '도깨비', '산군(호랑이)']);
+  });
+
+  it("'신화 DB만' 내보내기 → 불러오기 (관계 포함)", async () => {
+    await saveBeingRelation({ id: 'r1', fromId: 'seed-dokkaebi', toId: 'seed-gumiho', label: '함께 나오는 설화', sources: [] });
+    const parsed = parseBackup(JSON.stringify(await exportData('myth')));
+    if (!parsed.ok) throw new Error(parsed.error);
+    expect(Object.keys(parsed.envelope.data).sort()).toEqual(['beingRelations', 'beings']);
+    await wipe();
+    await applyImport(parsed.envelope, 'merge');
+    expect(await db.beingRelations.get('r1')).toBeTruthy();
+  });
+
+  it('연결을 바꾸면 요소 선택을 비우고, 존재를 지우면 연결·관계가 풀린다', async () => {
+    const { a } = await seed();
+    const [c] = await db.characters.where('workId').equals(a.id).toArray();
+    await linkArchetype(c.id, 'seed-dokkaebi');
+    await setElementChoice(c.id, 'dokkaebi-club', { choice: '변형함' });
+    await setElementChoice(c.id, 'dokkaebi-fire', { intended: true });
+    expect((await db.characters.get(c.id))!.archetypeChoices).toEqual({ 'dokkaebi-club': { choice: '변형함' }, 'dokkaebi-fire': { intended: true } });
+    await setElementChoice(c.id, 'dokkaebi-fire', { intended: false });
+    expect(Object.keys((await db.characters.get(c.id))!.archetypeChoices!)).toEqual(['dokkaebi-club']);
+    await linkArchetype(c.id, 'seed-gumiho');
+    expect((await db.characters.get(c.id))!.archetypeChoices).toBeUndefined();
+    await saveBeingRelation({ id: 'r2', fromId: 'seed-gumiho', toId: 'seed-dokkaebi', label: '', sources: [] });
+    await deleteBeing('seed-gumiho');
+    expect((await db.characters.get(c.id))!.archetypeId).toBeUndefined();
+    expect(await db.beingRelations.count()).toBe(0);
   });
 });
