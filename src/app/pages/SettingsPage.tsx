@@ -13,6 +13,7 @@ import { requestPersist } from '../../shared/storagePersist';
 import { useAutosave } from '../../shared/useAutosave';
 import { SerialSettingsCard } from '../../modules/serial/SerialSettingsCard';
 import { LintSettingsCard } from '../../modules/lint/LintSettingsCard';
+import { NetworkSettingsCard } from '../../modules/network/NetworkSettingsCard';
 import { Badge, Button, Card, Field, Input, PageHeader, SaveStatus, Select, formatDateTime } from '../../shared/ui';
 
 export default function SettingsPage() {
@@ -24,6 +25,7 @@ export default function SettingsPage() {
       <ReminderCard />
       <SerialSettingsCard />
       <LintSettingsCard />
+      <NetworkSettingsCard />
       <StorageCard />
     </div>
   );

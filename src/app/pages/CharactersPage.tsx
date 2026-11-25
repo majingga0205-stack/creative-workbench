@@ -77,20 +77,24 @@ export default function CharactersPage() {
   );
 }
 
-type Draft = { id: string; name: string; aliases: string; traits: string; note: string };
+type Draft = { id: string; name: string; aliases: string; strictAliases: string; traits: string; note: string };
 
 const toDraft = (c: Character): Draft => ({
   id: c.id,
   name: c.name,
-  aliases: c.aliases.join(', '),
+  aliases: c.aliases.filter((a) => !(c.nameRequiredAliases ?? []).includes(a)).join(', '),
+  strictAliases: (c.nameRequiredAliases ?? []).join(', '),
   traits: c.traits.join(', '),
   note: c.note,
 });
 
 async function saveDraft(d: Draft) {
+  const strict = parseList(d.strictAliases);
   await db.characters.update(d.id, {
     name: d.name.trim(),
-    aliases: parseList(d.aliases),
+    // 호칭 별칭도 별칭 목록에 들어가고, 따로 '본명이 같은 장면에 있을 때만' 표시를 단다
+    aliases: [...new Set([...parseList(d.aliases), ...strict])],
+    nameRequiredAliases: strict,
     traits: parseList(d.traits),
     note: d.note,
     updatedAt: new Date().toISOString(),
@@ -124,6 +128,9 @@ function CharacterForm({ character }: { character: Character }) {
         </Field>
         <Field label="별칭" hint="쉼표로 구분해요. 인물 네트워크(5단계)가 원고에서 이 인물을 찾을 때 이름과 함께 써요.">
           <Input value={draft.aliases} onChange={(e) => set('aliases', e.target.value)} placeholder="예: 하 대리, 연구원" />
+        </Field>
+        <Field label="호칭 별칭" hint="‘연구원’처럼 다른 사람에게도 쓰는 호칭. 같은 장면에 본명이 나왔을 때만 이 인물로 세요 (인물 네트워크).">
+          <Input value={draft.strictAliases} onChange={(e) => set('strictAliases', e.target.value)} placeholder="예: 연구원, 대리님" />
         </Field>
         <Field label="특성" hint="쉼표로 구분해요. 신화 원형 아카이브(6단계)가 원형과 대조할 때 써요.">
           <Input value={draft.traits} onChange={(e) => set('traits', e.target.value)} placeholder="예: 여우 구슬, 둔갑" />
