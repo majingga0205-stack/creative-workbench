@@ -57,6 +57,38 @@ export type Chapter = {
   updatedAt: string;
 };
 
+/** 독자 지표 스냅샷 (연재 실험실). 회차 하나를 게시 후 며칠째에 기록한 값들 */
+export type ReaderSnapshot = {
+  id: string;
+  workId: string;
+  chapterId: string;
+  /** 기록일 YYYY-MM-DD */
+  recordedAt: string;
+  /** 게시 후 일수 (게시일 = 0) */
+  daysAfter: number;
+  /** 지표 key → 값 (지표 이름은 설정의 독자 지표 목록) */
+  values: Record<string, number>;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type HypothesisStatus = '대기' | '확인할 때 됨' | '지지됨' | '기각' | '보류';
+
+/** 가설 (SPEC 모듈 C). updatedAt은 '모든 레코드에 updatedAt' 규칙으로 추가 */
+export type Hypothesis = {
+  id: string;
+  workId: string;
+  statement: string;
+  condition: { field: 'endingTag' | 'dialogueRatio' | 'length' | 'custom'; op: '=' | '>' | '<'; value: string | number };
+  metric: string;
+  target: 'same' | 'next';
+  checkAfterChapter: number;
+  status: HypothesisStatus;
+  resultNote?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 /** 사용자 설정값 하나. value는 JSON으로 저장 가능한 값. */
 export type Setting = {
   key: string;

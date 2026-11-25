@@ -56,15 +56,17 @@ describe('parseBackup', () => {
 
   it('스키마 버전이 낮은 파일은 마이그레이션을 거쳐 읽는다', () => {
     // v1 파일 → v2 앱. v2에서는 작품 kind에 기본값을 채운다고 가정한 가짜 마이그레이션
+    // 지금 버전 V 파일 → V+1 앱. V+1에서는 작품 kind에 기본값을 채운다고 가정한 가짜 마이그레이션
     const old = buildEnvelope('all', { works: [{ ...work('w1'), kind: undefined }] as never });
+    const V = old.schemaVersion;
     const r = parseBackup(JSON.stringify(old), {
-      currentVersion: 2,
+      currentVersion: V + 1,
       migrations: [
         {
-          from: 1,
+          from: V,
           migrate: (e) => ({
             ...e,
-            schemaVersion: 2,
+            schemaVersion: V + 1,
             data: { ...e.data, works: e.data.works.map((w) => ({ ...(w as object), kind: '기타' })) },
           }),
         },
@@ -72,15 +74,34 @@ describe('parseBackup', () => {
     });
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.migratedFrom).toBe(1);
-      expect(r.envelope.schemaVersion).toBe(2);
+      expect(r.migratedFrom).toBe(V);
+      expect(r.envelope.schemaVersion).toBe(V + 1);
       expect((r.envelope.data.works[0] as Work).kind).toBe('기타');
     }
   });
 
+  it('실제 v1 백업 파일(1단계에서 내보낸 것)은 v2로 바꿔 읽는다', () => {
+    const v1 = { ...buildEnvelope('all', allData()), schemaVersion: 1 };
+    const r = parseBackup(JSON.stringify(v1));
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.migratedFrom).toBe(1);
+      expect(r.envelope.schemaVersion).toBe(2);
+      expect(r.envelope.data.readerSnapshots).toEqual([]);
+      expect(r.envelope.data.works).toHaveLength(2);
+    }
+  });
+
+  it('파일 안에 없는 회차를 가리키는 독자 지표 기록은 거부한다', () => {
+    const snap = { id: 's1', workId: 'w1', chapterId: '없는회차', recordedAt: '2026-11-01', daysAfter: 3, values: { views: 10 }, createdAt: T1, updatedAt: T1 };
+    const r = parseBackup(JSON.stringify(buildEnvelope('all', { ...allData(), readerSnapshots: [snap] })));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.details.join()).toContain('없는 회차');
+  });
+
   it('마이그레이션이 빠져 있으면 거부한다', () => {
     const old = buildEnvelope('all', allData());
-    const r = parseBackup(JSON.stringify(old), { currentVersion: 2, migrations: [] });
+    const r = parseBackup(JSON.stringify(old), { currentVersion: old.schemaVersion + 1, migrations: [] });
     expect(r.ok).toBe(false);
   });
 

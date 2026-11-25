@@ -27,6 +27,8 @@ export const TABLE_DEFS: TableDef[] = [
   { name: 'works', key: 'id', group: 'work', workKey: 'id', label: '작품' },
   { name: 'characters', key: 'id', group: 'work', workKey: 'workId', label: '캐릭터' },
   { name: 'chapters', key: 'id', group: 'work', workKey: 'workId', label: '회차' },
+  { name: 'readerSnapshots', key: 'id', group: 'work', workKey: 'workId', label: '독자 지표 기록' },
+  { name: 'hypotheses', key: 'id', group: 'work', workKey: 'workId', label: '가설' },
   { name: 'settings', key: 'key', group: 'settings', label: '설정' },
   // 4단계: { name: 'lintEntries', key: 'id', group: 'lint', label: '고증 항목' }
   // 6단계: { name: 'beings', key: 'id', group: 'myth', label: '신화 존재' } …
@@ -56,6 +58,10 @@ export function describeRecord(table: string, rec: Record<string, unknown>): str
       return `${String(rec.number ?? '?')}화 ${String(rec.title ?? '')}`.trim();
     case 'settings':
       return `설정 ${String(rec.key ?? '')}`;
+    case 'readerSnapshots':
+      return `독자 지표 기록 (${String(rec.recordedAt ?? '')}, ${String(rec.daysAfter ?? '?')}일차)`;
+    case 'hypotheses':
+      return `가설 「${String(rec.statement ?? '')}」`;
     default:
       return `${table} ${String(rec.id ?? rec.key ?? '')}`;
   }

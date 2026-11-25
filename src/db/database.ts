@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable, type Table } from 'dexie';
-import type { Chapter, Character, Setting, Work } from './types';
+import type { Chapter, Character, Hypothesis, ReaderSnapshot, Setting, Work } from './types';
 
 /** 이 브라우저에만 해당하는 값 (백업 파일에 넣지 않음). 예: lastBackupAt */
 export type Meta = { key: string; value: unknown };
@@ -10,6 +10,8 @@ export class WorkbenchDB extends Dexie {
   works!: EntityTable<Work, 'id'>;
   characters!: EntityTable<Character, 'id'>;
   chapters!: EntityTable<Chapter, 'id'>;
+  readerSnapshots!: EntityTable<ReaderSnapshot, 'id'>;
+  hypotheses!: EntityTable<Hypothesis, 'id'>;
   settings!: EntityTable<Setting, 'key'>;
   meta!: EntityTable<Meta, 'key'>;
 
@@ -23,6 +25,11 @@ export class WorkbenchDB extends Dexie {
       chapters: 'id, workId, [workId+number], updatedAt',
       settings: 'key',
       meta: 'key',
+    });
+    // v2 (3단계): 연재 실험실 독자 지표 스냅샷·가설. 새 테이블만 더하므로 기존 데이터 변환은 없다.
+    this.version(2).stores({
+      readerSnapshots: 'id, workId, chapterId, updatedAt',
+      hypotheses: 'id, workId, updatedAt',
     });
   }
 

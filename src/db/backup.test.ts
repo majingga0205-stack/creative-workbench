@@ -5,7 +5,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from './database';
 import { applyImport, exportData, planImport } from './backup';
 import { parseBackup } from './backupFormat';
-import { createChapter, createCharacter, createWork, saveWork, updateChapter, makeVersion } from './repo';
+import Dexie from 'dexie';
+import { WorkbenchDB } from './database';
+import { createChapter, createCharacter, createHypothesis, createWork, deleteChapter, deleteWork, saveSnapshot, saveWork, updateChapter, makeVersion } from './repo';
 import { setSetting } from './meta';
 
 async function seed() {
@@ -20,6 +22,14 @@ async function seed() {
   });
   await createChapter(a.id, { title: '밤길', text: '감자를 캐다.' });
   await createChapter(b.id, { number: 1, title: '시작', text: '첫 문장.' });
+  await saveSnapshot({ workId: a.id, chapterId: ch1.id, recordedAt: '2026-11-04', daysAfter: 3, values: { views: 120, comments: 4 } });
+  await createHypothesis(a.id, {
+    statement: '엔딩을 끊어 치면 다음 화 유지율이 오른다',
+    condition: { field: 'endingTag', op: '=', value: '절단' },
+    metric: 'views',
+    target: 'next',
+    checkAfterChapter: 10,
+  });
   await setSetting('backupReminderDays', 3);
   return { a, b };
 }
@@ -29,6 +39,8 @@ async function dumpAll() {
     works: await db.works.orderBy('id').toArray(),
     characters: await db.characters.orderBy('id').toArray(),
     chapters: await db.chapters.orderBy('id').toArray(),
+    readerSnapshots: await db.readerSnapshots.orderBy('id').toArray(),
+    hypotheses: await db.hypotheses.orderBy('id').toArray(),
     settings: await db.settings.orderBy('key').toArray(),
   };
 }
@@ -54,7 +66,7 @@ describe('전체 내보내기 → 삭제 → 불러오기', () => {
     const parsed = parseBackup(file);
     if (!parsed.ok) throw new Error(parsed.error + parsed.details.join('\n'));
     const plan = await planImport(parsed.envelope);
-    expect(plan.totals.add).toBe(before.works.length + before.characters.length + before.chapters.length + before.settings.length);
+    expect(plan.totals.add).toBe(Object.values(before).reduce((n, rows) => n + rows.length, 0));
     await applyImport(parsed.envelope, 'replace');
 
     expect(await dumpAll()).toEqual(before);
@@ -91,11 +103,46 @@ describe('전체 내보내기 → 삭제 → 불러오기', () => {
     const parsed = parseBackup(file);
     if (!parsed.ok) throw new Error(parsed.error);
     const plan = await planImport(parsed.envelope);
-    expect(plan.totals.removeOnReplace).toBe(1 + 1 + 3); // 작품 1, 캐릭터 1, 회차 3
+    expect(plan.totals.removeOnReplace).toBe(1 + 1 + 3 + 1 + 1); // 작품 1, 캐릭터 1, 회차 3, 독자 지표 1, 가설 1
     await applyImport(parsed.envelope, 'replace');
 
     expect(await db.chapters.where('workId').equals(a.id).count()).toBe(2);
     expect(await db.chapters.where('workId').equals(b.id).count()).toBe(1);
     expect(await db.settings.count()).toBe(1);
+  });
+});
+
+describe('지우기와 DB 구조 변경', () => {
+  it('회차를 지우면 그 회차의 독자 지표 기록도, 작품을 지우면 딸린 것 전부가 지워진다', async () => {
+    const { a } = await seed();
+    const snap = (await db.readerSnapshots.toArray())[0];
+    await deleteChapter(snap.chapterId);
+    expect(await db.readerSnapshots.count()).toBe(0);
+    await deleteWork(a.id);
+    expect(await db.hypotheses.where('workId').equals(a.id).count()).toBe(0);
+    expect(await db.chapters.where('workId').equals(a.id).count()).toBe(0);
+  });
+
+  it('v1 구조 DB(1단계)에 있던 데이터는 v2로 열어도 그대로 남는다', async () => {
+    const name = 'upgrade-test';
+    const old = new Dexie(name);
+    old.version(1).stores({
+      works: 'id, updatedAt',
+      characters: 'id, workId, updatedAt',
+      chapters: 'id, workId, [workId+number], updatedAt',
+      settings: 'key',
+      meta: 'key',
+    });
+    await old.open();
+    await old.table('works').add({ id: 'w1', title: '귀향', kind: '게임', createdAt: 't', updatedAt: 't' });
+    old.close();
+
+    const upgraded = new WorkbenchDB(name);
+    await upgraded.open();
+    expect(upgraded.verno).toBe(2);
+    expect((await upgraded.works.get('w1'))?.title).toBe('귀향');
+    expect(await upgraded.readerSnapshots.count()).toBe(0);
+    upgraded.close();
+    await Dexie.delete(name);
   });
 });

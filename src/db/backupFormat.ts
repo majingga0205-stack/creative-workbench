@@ -141,6 +141,12 @@ export function parseBackup(text: string, opts: ParseOptions = {}): ParseResult 
         }
       });
     }
+    const chapterIds = new Set((data.chapters ?? []).map((c) => String(c.id)));
+    (data.readerSnapshots ?? []).forEach((rec) => {
+      if (!chapterIds.has(String(rec.chapterId))) {
+        details.push(`${describeRecord('readerSnapshots', rec)}: 파일 안에 없는 회차(${String(rec.chapterId)})를 가리켜요`);
+      }
+    });
   }
 
   if (details.length > 0) {

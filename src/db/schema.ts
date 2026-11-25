@@ -58,6 +58,35 @@ export const chapterSchema = z
     path: ['activeVersionId'],
   });
 
+export const readerSnapshotSchema = z.object({
+  id: z.string().min(1),
+  workId: z.string().min(1),
+  chapterId: z.string().min(1),
+  recordedAt: z.string(),
+  daysAfter: z.number().int(),
+  values: z.record(z.string(), z.number()),
+  createdAt: isoDate,
+  updatedAt: isoDate,
+});
+
+export const hypothesisSchema = z.object({
+  id: z.string().min(1),
+  workId: z.string().min(1),
+  statement: z.string(),
+  condition: z.object({
+    field: z.enum(['endingTag', 'dialogueRatio', 'length', 'custom']),
+    op: z.enum(['=', '>', '<']),
+    value: z.union([z.string(), z.number()]),
+  }),
+  metric: z.string(),
+  target: z.enum(['same', 'next']),
+  checkAfterChapter: z.number(),
+  status: z.enum(['대기', '확인할 때 됨', '지지됨', '기각', '보류']),
+  resultNote: z.string().optional(),
+  createdAt: isoDate,
+  updatedAt: isoDate,
+});
+
 export const settingSchema = z.object({
   key: z.string().min(1),
   value: z.unknown(),
@@ -69,6 +98,8 @@ export const RECORD_SCHEMAS: Record<string, z.ZodType> = {
   works: workSchema,
   characters: characterSchema,
   chapters: chapterSchema,
+  readerSnapshots: readerSnapshotSchema,
+  hypotheses: hypothesisSchema,
   settings: settingSchema,
 };
 
