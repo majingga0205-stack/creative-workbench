@@ -200,6 +200,73 @@ export type BeingRelation = { id: string; fromId: string; toId: string; label: s
 export type ElementChoice = '가져옴' | '변형함' | '버림' | '충돌';
 export type ArchetypeChoices = Record<string, { choice?: ElementChoice; intended?: boolean }>;
 
+// ── 보스 페이즈 설계 보드 (7·8단계, 횡스크롤) ──
+
+export type PatternShape = 'projectile' | 'arc' | 'thrust' | 'area' | 'dash';
+export const PATTERN_SHAPES: PatternShape[] = ['projectile', 'arc', 'thrust', 'area', 'dash'];
+export type PatternCounter = '회피' | '패링' | '방어' | '점프' | '기타';
+export const PATTERN_COUNTERS: PatternCounter[] = ['회피', '패링', '방어', '점프', '기타'];
+
+export type Pattern = {
+  id: string;
+  name: string;
+  shape: PatternShape;
+  telegraphMs: number;
+  activeMs: number;
+  recoveryMs: number;
+  cooldownMs: number;
+  damage: number;
+  counter: PatternCounter;
+  /** 모양별 값 (SPEC 표) */
+  params: Record<string, number | string>;
+  /** 패턴 전에 보스가 하는 대사 */
+  line?: string;
+  note?: string;
+};
+
+export type Phase = {
+  id: string;
+  order: number;
+  name: string;
+  emotion: string;
+  narrative: string;
+  weapon: string;
+  /** 체력 구간(%) */
+  hpFrom: number;
+  hpTo: number;
+  transition: string;
+  /** 0~10, 설계자가 의도한 긴장도 */
+  intendedTension: number;
+  /** 패턴 출현 비중 */
+  sequence: { patternId: string; weight: number }[];
+  patterns: Pattern[];
+  /** 의도한 긴장도와 압박도가 일부러 어긋나게 설계함 (SPEC '의도함') */
+  gapIntended?: boolean;
+};
+
+/** 보스 (작품별). 횡스크롤: 아레나 바닥 = 아래쪽 끝 */
+export type Boss = {
+  id: string;
+  workId: string;
+  name: string;
+  /** 보스 주인 캐릭터 */
+  characterId?: string;
+  arena: { width: number; height: number };
+  player: {
+    maxHp: number;
+    /** 좌우 이동 속도 px/s */
+    speed: number;
+    /** 몸통 크기 px */
+    width: number;
+    height: number;
+    jump: { height: number; durationMs: number };
+    dodge: { distance: number; durationMs: number; iframeMs: number; cooldownMs: number };
+  };
+  phases: Phase[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 /** 사용자 설정값 하나. value는 JSON으로 저장 가능한 값. */
 export type Setting = {
   key: string;
