@@ -1,6 +1,6 @@
 // 작품·캐릭터·회차 저장 함수. 모든 쓰기는 updatedAt을 갱신한다.
 import { db } from './database';
-import type { Being, BeingRelation, Chapter, ChapterVersion, Character, ElementChoice, GlossaryEntry, Hypothesis, LintEntry, LintResolution, NetworkEdit, ReaderSnapshot, Work, WorkKind } from './types';
+import type { Being, BeingRelation, Boss, Chapter, ChapterVersion, Character, ElementChoice, GlossaryEntry, Hypothesis, LintEntry, LintResolution, NetworkEdit, ReaderSnapshot, Work, WorkKind } from './types';
 
 export const newId = () => crypto.randomUUID();
 const now = () => new Date().toISOString();
@@ -20,7 +20,8 @@ export async function saveWork(work: Work) {
 
 /** 작품과 딸린 캐릭터·회차를 함께 지운다. 호출 전에 확인 창을 띄울 것. */
 export async function deleteWork(workId: string) {
-  await db.transaction('rw', [db.works, db.characters, db.chapters, db.readerSnapshots, db.hypotheses, db.glossary, db.lintResolutions, db.networkEdits], async () => {
+  await db.transaction('rw', [db.works, db.characters, db.chapters, db.readerSnapshots, db.hypotheses, db.glossary, db.lintResolutions, db.networkEdits, db.bosses], async () => {
+    await db.bosses.where('workId').equals(workId).delete();
     await db.networkEdits.where('workId').equals(workId).delete();
     await db.glossary.where('workId').equals(workId).delete();
     await db.lintResolutions.where('workId').equals(workId).delete();
@@ -55,8 +56,13 @@ export async function saveCharacter(c: Character) {
 
 /** 캐릭터와 그 캐릭터가 들어간 관계망 수동 보정을 함께 지운다. 호출 전에 확인 창을 띄울 것. */
 export async function deleteCharacter(id: string) {
-  await db.transaction('rw', [db.characters, db.networkEdits], async () => {
+  await db.transaction('rw', [db.characters, db.networkEdits, db.bosses], async () => {
     await db.networkEdits.filter((e) => e.a === id || e.b === id).delete();
+    // 이 캐릭터가 보스 주인이면 연결만 푼다 (보스는 남긴다)
+    await db.bosses.filter((b) => b.characterId === id).modify((b) => {
+      delete b.characterId;
+      b.updatedAt = now();
+    });
     await db.characters.delete(id);
   });
 }
@@ -250,4 +256,14 @@ export async function setElementChoice(characterId: string, elementId: string, p
     c.archetypeChoices = all;
     c.updatedAt = now();
   });
+}
+
+// ── 보스 페이즈 설계 보드 ──
+
+export async function saveBoss(b: Boss) {
+  await db.bosses.put({ ...b, updatedAt: now() });
+}
+
+export async function deleteBoss(id: string) {
+  await db.bosses.delete(id);
 }

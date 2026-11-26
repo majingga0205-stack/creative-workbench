@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable, type Table } from 'dexie';
-import type { Being, BeingRelation, Chapter, Character, GlossaryEntry, Hypothesis, LintEntry, LintResolution, NetworkEdit, ReaderSnapshot, Setting, Work } from './types';
+import type { Being, BeingRelation, Boss, Chapter, Character, GlossaryEntry, Hypothesis, LintEntry, LintResolution, NetworkEdit, ReaderSnapshot, Setting, Work } from './types';
 import { LINT_SEED } from '../seed/lintSeed';
 import { MYTH_SEED } from '../seed/mythSeed';
 
@@ -20,6 +20,7 @@ export class WorkbenchDB extends Dexie {
   networkEdits!: EntityTable<NetworkEdit, 'id'>;
   beings!: EntityTable<Being, 'id'>;
   beingRelations!: EntityTable<BeingRelation, 'id'>;
+  bosses!: EntityTable<Boss, 'id'>;
   settings!: EntityTable<Setting, 'key'>;
   meta!: EntityTable<Meta, 'key'>;
 
@@ -59,6 +60,8 @@ export class WorkbenchDB extends Dexie {
         const t = tx.table('beings');
         if ((await t.count()) === 0) await t.bulkAdd(MYTH_SEED);
       });
+    // v6 (7단계): 보스 페이즈 설계 보드. 보스(작품별, 페이즈·패턴을 안에 담음). 새 테이블만 더한다.
+    this.version(6).stores({ bosses: 'id, workId, updatedAt' });
     // 새로 만든 DB에도 시드를 넣는다
     this.on('populate', async (tx) => {
       await tx.table('lintEntries').bulkAdd(LINT_SEED);

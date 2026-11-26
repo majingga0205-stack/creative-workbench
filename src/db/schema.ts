@@ -197,6 +197,57 @@ export const beingRelationSchema = z.object({
   updatedAt: isoDate,
 });
 
+const nonNeg = z.number().min(0);
+export const patternSchema = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+  shape: z.enum(['projectile', 'arc', 'thrust', 'area', 'dash']),
+  telegraphMs: nonNeg,
+  activeMs: nonNeg,
+  recoveryMs: nonNeg,
+  cooldownMs: nonNeg,
+  damage: nonNeg,
+  counter: z.enum(['회피', '패링', '방어', '점프', '기타']),
+  params: z.record(z.string(), z.union([z.number(), z.string()])),
+  line: z.string().optional(),
+  note: z.string().optional(),
+});
+
+export const phaseSchema = z.object({
+  id: z.string().min(1),
+  order: z.number(),
+  name: z.string(),
+  emotion: z.string(),
+  narrative: z.string(),
+  weapon: z.string(),
+  hpFrom: z.number(),
+  hpTo: z.number(),
+  transition: z.string(),
+  intendedTension: z.number().min(0).max(10),
+  sequence: z.array(z.object({ patternId: z.string(), weight: nonNeg })),
+  patterns: z.array(patternSchema),
+  gapIntended: z.boolean().optional(),
+});
+
+export const bossSchema = z.object({
+  id: z.string().min(1),
+  workId: z.string().min(1),
+  name: z.string(),
+  characterId: z.string().optional(),
+  arena: z.object({ width: z.number().positive(), height: z.number().positive() }),
+  player: z.object({
+    maxHp: z.number().positive(),
+    speed: nonNeg,
+    width: z.number().positive(),
+    height: z.number().positive(),
+    jump: z.object({ height: nonNeg, durationMs: nonNeg }),
+    dodge: z.object({ distance: nonNeg, durationMs: nonNeg, iframeMs: nonNeg, cooldownMs: nonNeg }),
+  }),
+  phases: z.array(phaseSchema),
+  createdAt: isoDate,
+  updatedAt: isoDate,
+});
+
 export const settingSchema = z.object({
   key: z.string().min(1),
   value: z.unknown(),
@@ -213,6 +264,7 @@ export const RECORD_SCHEMAS: Record<string, z.ZodType> = {
   glossary: glossarySchema,
   lintResolutions: lintResolutionSchema,
   networkEdits: networkEditSchema,
+  bosses: bossSchema,
   lintEntries: lintEntrySchema,
   beings: beingSchema,
   beingRelations: beingRelationSchema,

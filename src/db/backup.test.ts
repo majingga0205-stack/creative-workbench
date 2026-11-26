@@ -7,7 +7,8 @@ import { applyImport, exportData, planImport } from './backup';
 import { parseBackup } from './backupFormat';
 import Dexie from 'dexie';
 import { WorkbenchDB } from './database';
-import { createChapter, createCharacter, createHypothesis, createWork, deleteBeing, deleteChapter, deleteCharacter, deleteWork, linkArchetype, saveBeingRelation, saveGlossary, saveResolution, saveSnapshot, saveWork, setEdgeLabel, setEdgeOverride, setElementChoice, updateChapter, makeVersion } from './repo';
+import { newBossDefaults, newPattern, newPhase } from '../core/boss';
+import { createChapter, createCharacter, createHypothesis, createWork, deleteBeing, deleteChapter, deleteCharacter, deleteWork, linkArchetype, saveBoss, saveBeingRelation, saveGlossary, saveResolution, saveSnapshot, saveWork, setEdgeLabel, setEdgeOverride, setElementChoice, updateChapter, makeVersion } from './repo';
 import { SCHEMA_VERSION } from './migrations';
 import { LINT_SEED } from '../seed/lintSeed';
 import { MYTH_SEED } from '../seed/mythSeed';
@@ -35,6 +36,8 @@ async function seed() {
     target: 'next',
     checkAfterChapter: 10,
   });
+  const phase = { ...newPhase('ph1', 0), patterns: [newPattern('pt1', 'projectile', '활 탄막')], sequence: [{ patternId: 'pt1', weight: 1 }] };
+  await saveBoss({ id: 'boss1', workId: a.id, name: '평온의 궁수', characterId: haram.id, ...newBossDefaults(), phases: [phase], createdAt: '2026-11-26T00:00:00.000Z', updatedAt: '' });
   await saveGlossary({ id: 'g1', workId: a.id, canonical: '나노테크 팔찌', variants: ['나노 팔찌'], status: '사용' });
   await saveResolution({ workId: a.id, ruleKey: 'era:seed-potato', status: '의도함', scope: 'chapter', chapterId: ch1.id });
   await setSetting('backupReminderDays', 3);
@@ -52,6 +55,7 @@ async function dumpAll() {
     lintResolutions: await db.lintResolutions.orderBy('id').toArray(),
     lintEntries: await db.lintEntries.orderBy('id').toArray(),
     networkEdits: await db.networkEdits.orderBy('id').toArray(),
+    bosses: await db.bosses.orderBy('id').toArray(),
     beings: await db.beings.orderBy('id').toArray(),
     beingRelations: await db.beingRelations.orderBy('id').toArray(),
     settings: await db.settings.orderBy('key').toArray(),
@@ -118,7 +122,7 @@ describe('전체 내보내기 → 삭제 → 불러오기', () => {
     const parsed = parseBackup(file);
     if (!parsed.ok) throw new Error(parsed.error);
     const plan = await planImport(parsed.envelope);
-    expect(plan.totals.removeOnReplace).toBe(1 + 2 + 3 + 1 + 1 + 1 + 1 + 1); // 작품 1, 캐릭터 2, 회차 3, 독자 지표 1, 가설 1, 용어 1, 처리 기록 1, 관계망 보정 1
+    expect(plan.totals.removeOnReplace).toBe(1 + 2 + 3 + 1 + 1 + 1 + 1 + 1 + 1); // 작품 1, 캐릭터 2, 회차 3, 독자 지표 1, 가설 1, 용어 1, 처리 기록 1, 관계망 보정 1, 보스 1
     await applyImport(parsed.envelope, 'replace');
 
     expect(await db.chapters.where('workId').equals(a.id).count()).toBe(2);
@@ -259,5 +263,18 @@ describe('6단계: 신화 DB와 캐릭터 대조', () => {
     await deleteBeing('seed-gumiho');
     expect((await db.characters.get(c.id))!.archetypeId).toBeUndefined();
     expect(await db.beingRelations.count()).toBe(0);
+  });
+});
+
+describe('7단계: 보스', () => {
+  it('보스 주인 캐릭터를 지우면 보스는 남고 연결만 풀린다. 작품을 지우면 보스도 지운다', async () => {
+    const { a } = await seed();
+    const boss = (await db.bosses.get('boss1'))!;
+    expect(boss.phases[0].patterns[0].name).toBe('활 탄막');
+    await deleteCharacter(boss.characterId!);
+    const after = (await db.bosses.get('boss1'))!;
+    expect(after.characterId).toBeUndefined();
+    await deleteWork(a.id);
+    expect(await db.bosses.count()).toBe(0);
   });
 });

@@ -1,6 +1,7 @@
 import { db as defaultDb, type WorkbenchDB } from './database';
 import { DEFAULT_RHYTHM_THRESHOLDS, type RhythmThresholds } from '../core/rhythm/types';
 import type { ParagraphMode } from '../core/korean';
+import { DEFAULT_PRESSURE, type PressureSettings } from '../core/boss/pressure';
 import type { Setting, WorkSetting } from './types';
 
 export async function getMeta<T>(key: string, database: WorkbenchDB = defaultDb): Promise<T | undefined> {
@@ -34,6 +35,8 @@ type SettingValues = {
   'network.sameParagraphBonus': number;
   /** 인물 네트워크: 존재감 하락 경고의 '최근 N화' */
   'network.recentChapters': number;
+  /** 보스 보드: 압박도 가중치·기준값 */
+  'boss.pressure': PressureSettings;
 };
 
 export const SETTING_DEFAULTS: SettingValues = {
@@ -51,6 +54,7 @@ export const SETTING_DEFAULTS: SettingValues = {
   'network.paragraphsPerScene': 8,
   'network.sameParagraphBonus': 0,
   'network.recentChapters': 5,
+  'boss.pressure': DEFAULT_PRESSURE,
 };
 
 export type SettingKey = keyof SettingValues;

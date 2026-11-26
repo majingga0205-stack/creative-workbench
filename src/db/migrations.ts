@@ -8,7 +8,7 @@
 //      예전 백업 파일도 불러올 수 있게 한다. migrate는 순수 함수여야 하고 테스트를 붙인다.
 
 export const APP_ID = 'creative-workbench';
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 /** schemaVersion이 from인 백업 파일 내용을 from+1 구조로 바꾼다. */
 export type ExportMigration = {
@@ -36,4 +36,6 @@ export const EXPORT_MIGRATIONS: ExportMigration[] = [
   { from: 3, migrate: (env) => ({ ...env, schemaVersion: 4 }) },
   // v4 → v5: 신화 DB(존재·존재 관계) 테이블이 새로 생겼다. v4 파일에는 없으니 그대로 둔다.
   { from: 4, migrate: (env) => ({ ...env, schemaVersion: 5 }) },
+  // v5 → v6: 보스 테이블이 새로 생겼다. v5 파일에는 없으니 그대로 둔다.
+  { from: 5, migrate: (env) => ({ ...env, schemaVersion: 6 }) },
 ];
