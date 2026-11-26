@@ -4,8 +4,7 @@ import { applyResolutions, buildReportHtml, buildReportMarkdown, formatAppears, 
 import { db } from '../../db/database';
 import { deleteResolution, saveResolution, updateChapter } from '../../db/repo';
 import type { Chapter, GlossaryEntry, LintEntry, LintResolution, Work, WorkSetting } from '../../db/types';
-import { toast } from '../../shared/dialogs';
-import { downloadText } from '../../shared/files';
+import { saveFileWithToast } from '../../shared/files';
 import { Badge, Button, Card, Empty, Input, Select, TextArea } from '../../shared/ui';
 import { useUI } from '../../store/ui';
 import { useTextRules } from '../../shared/useTextRules';
@@ -101,7 +100,7 @@ export function CheckTab({
 
   const counts = { red: items.filter((f) => f.color === 'red').length, yellow: items.filter((f) => f.color === 'yellow').length, blue: items.filter((f) => f.color === 'blue').length };
 
-  const report = (kind: 'md' | 'html') => {
+  const report = async (kind: 'md' | 'html') => {
     const eras = [...new Set(targets.map((t) => eraText(t.era)))];
     const input = {
       workTitle: work.title,
@@ -114,9 +113,8 @@ export function CheckTab({
     const d = new Date();
     const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
     const base = `고증리포트-${work.title.replace(/[\\/:*?"<>|\s]+/g, '_')}-${stamp}`;
-    if (kind === 'md') downloadText(`${base}.md`, buildReportMarkdown(input), 'text/markdown');
-    else downloadText(`${base}.html`, buildReportHtml(input), 'text/html');
-    toast(kind === 'md' ? 'Markdown 리포트를 저장했어요' : '인쇄용 HTML을 저장했어요. 브라우저로 열어 인쇄 → PDF로 저장하세요.');
+    if (kind === 'md') await saveFileWithToast(`${base}.md`, buildReportMarkdown(input), 'Markdown 리포트를 저장했어요', 'text/markdown');
+    else await saveFileWithToast(`${base}.html`, buildReportHtml(input), '인쇄용 HTML을 저장했어요. 브라우저로 열어 인쇄 → PDF로 저장하세요.', 'text/html');
   };
 
   return (

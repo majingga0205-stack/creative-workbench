@@ -18,6 +18,16 @@ npm test         # 단위·왕복 테스트
 npm run build    # 빌드 확인
 ```
 
+### 링크로 쓰기 (claude.ai)
+
+설치 없이 claude.ai 링크로도 연다(주소는 [docs/PROJECT_STATE.md](docs/PROJECT_STATE.md)의 '링크로 쓰기'). 기능은 같고 다른 점은 이것뿐이다.
+
+- 데이터는 그 링크를 연 브라우저에만 저장된다. 내 컴퓨터에서 실행한 앱과 저장소가 따로라서, 옮길 때는 **전체 내보내기 → 불러오기**.
+- 파일을 저장할 때마다 claude.ai의 저장 확인 창이 뜬다.
+- 기획서 인쇄는 안 되고 PNG로 저장한다.
+
+링크에 올릴 묶음은 `npm run build:artifact`로 만든다(`dist-artifact/`).
+
 ## 무엇이 있나
 
 | 메뉴 | 하는 일 |
@@ -48,4 +58,5 @@ src/db/        Dexie DB, 스키마(zod), 마이그레이션, 백업·왕복 테�
 src/modules/   다섯 모듈 화면       src/app/pages/  작품·캐릭터·회차·설정 화면
 src/shared/    공용 화면 조각(관계 그래프, 대화 상자, 자동 저장 등)
 src/seed/      고증·신화 시드 (전부 미검증)
+scripts/       링크(claude.ai)용 묶음 빌드
 ```

@@ -27,7 +27,7 @@ import { useUI } from '../../store/ui';
 import { PreviewCard } from './Preview';
 import { BossPlan } from './BossPlan';
 import { buildBossFile } from '../../db/bossFile';
-import { downloadText } from '../../shared/files';
+import { inArtifactView, saveFileWithToast } from '../../shared/files';
 
 export function BossEditor({ boss, characters, settings, workTitle, onDeleted }: { boss: Boss; characters: Character[]; settings: PressureSettings; workTitle: string; onDeleted: () => void }) {
   const [b, setB] = useState<Boss>(boss);
@@ -133,13 +133,12 @@ export function BossEditor({ boss, characters, settings, workTitle, onDeleted }:
       {selPhase && <PreviewCard boss={b} phase={selPhase} />}
 
       <div className="flex flex-wrap justify-end gap-2">
-        <Button size="sm" variant="primary" onClick={() => setPlanOpen(true)}>기획서 보기 · 인쇄</Button>
+        <Button size="sm" variant="primary" onClick={() => setPlanOpen(true)}>{inArtifactView() ? '기획서 보기' : '기획서 보기 · 인쇄'}</Button>
         <Button
           size="sm"
-          onClick={() => {
-            downloadText(`보스-${b.name.replace(/[\\/:*?"<>|\s]+/g, '_')}.json`, JSON.stringify(buildBossFile(b), null, 2));
-            toast('보스 하나를 JSON으로 내보냈어요');
-          }}
+          onClick={() =>
+            void saveFileWithToast(`보스-${b.name.replace(/[\\/:*?"<>|\s]+/g, '_')}.json`, JSON.stringify(buildBossFile(b), null, 2), '보스 하나를 JSON으로 내보냈어요')
+          }
         >
           보스 JSON 내보내기
         </Button>

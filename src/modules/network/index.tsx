@@ -23,7 +23,7 @@ import {
 import { NoWork, useCurrentWork } from '../../app/pages/WorkInfoPage';
 import { textRulesOf, type TextRules } from '../../shared/useTextRules';
 import { NetworkGraph, type GraphEdge, type GraphNode, type NetworkGraphHandle } from '../../shared/NetworkGraph';
-import { toast } from '../../shared/dialogs';
+import { dataUrlToBlob, saveFileWithToast } from '../../shared/files';
 import { Badge, Button, Card, Empty, PageHeader, Select } from '../../shared/ui';
 import { useUI } from '../../store/ui';
 import { activeVersion, useChapters } from '../serial/useSerial';
@@ -144,16 +144,10 @@ function NetworkView({
     dashed: e.manual,
   }));
 
-  const savePng = () => {
+  const savePng = async () => {
     const uri = graphRef.current?.png();
     if (!uri) return;
-    const a = document.createElement('a');
-    a.href = uri;
-    a.download = `관계망-${workTitle.replace(/[\\/:*?"<>|\s]+/g, '_')}-${lo}~${hi}화.png`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    toast('관계망 그림을 저장했어요');
+    await saveFileWithToast(`관계망-${workTitle.replace(/[\\/:*?"<>|\s]+/g, '_')}-${lo}~${hi}화.png`, dataUrlToBlob(uri), '관계망 그림을 저장했어요', 'image/png');
   };
 
   const exp = removeId ? removalExperiment(data, removeId) : null;

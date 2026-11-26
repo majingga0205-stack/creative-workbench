@@ -1,12 +1,13 @@
 // 보스 기획서: 인쇄용 A4 가로 페이지 (표지 · 긴장도 곡선 · 페이즈 카드와 패턴 표 · 타이밍 막대 · 전조/공격 장면 스냅샷)
-// PDF는 브라우저 인쇄로, PNG는 html-to-image로 페이지마다 저장한다.
+// PDF는 브라우저 인쇄로, PNG는 html-to-image로 페이지마다 저장한다. (claude.ai 링크로 열면 인쇄가 안 돼서 PNG만)
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { toPng } from 'html-to-image';
+import { toBlob } from 'html-to-image';
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts';
 import { BOSS_W, DT, SHAPE_LABELS, makeContext, phaseSummary, runSim, tensionCurve, type PressureSettings } from '../../core/boss';
 import type { Boss, Character, Pattern, Phase } from '../../db/types';
 import { toast } from '../../shared/dialogs';
+import { inArtifactView, saveFile } from '../../shared/files';
 import { Button } from '../../shared/ui';
 import { C } from '../serial/charts';
 import { renderSnapshot } from './Preview';
@@ -15,6 +16,7 @@ import { SEGMENT_STYLE } from './parts';
 export function BossPlan({ boss, workTitle, characters, settings, onClose }: { boss: Boss; workTitle: string; characters: Character[]; settings: PressureSettings; onClose: () => void }) {
   const pagesRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
+  const printable = !inArtifactView();
   const phases = [...boss.phases].sort((a, b) => a.order - b.order);
   const owner = characters.find((c) => c.id === boss.characterId)?.name;
 
@@ -33,13 +35,14 @@ export function BossPlan({ boss, workTitle, characters, settings, onClose }: { b
     setBusy(true);
     try {
       for (let i = 0; i < pages.length; i++) {
-        const url = await toPng(pages[i], { pixelRatio: 2, backgroundColor: '#ffffff', skipFonts: true });
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `기획서-${boss.name.replace(/[\\/:*?"<>|\s]+/g, '_')}-${String(i + 1).padStart(2, '0')}.png`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        const blob = await toBlob(pages[i], { pixelRatio: 2, backgroundColor: '#ffffff', skipFonts: true });
+        if (!blob) throw new Error('그림이 비었어요');
+        const r = await saveFile(`기획서-${boss.name.replace(/[\\/:*?"<>|\s]+/g, '_')}-${String(i + 1).padStart(2, '0')}.png`, blob, 'image/png');
+        if (!r.ok) {
+          // 한 장이라도 취소하면 나머지는 묻지 않고 멈춘다
+          toast(`${i}장 저장하고 멈췄어요: ${r.message}`, r.reason === 'declined' ? 'info' : 'error');
+          return;
+        }
       }
       toast(`기획서 PNG ${pages.length}장을 저장했어요`);
     } catch (e) {
@@ -54,7 +57,11 @@ export function BossPlan({ boss, workTitle, characters, settings, onClose }: { b
       <div className="plan-toolbar sticky top-0 z-10 mx-auto mb-4 flex max-w-[297mm] items-center gap-2 rounded-lg bg-white px-4 py-2 shadow">
         <b className="text-sm">기획서 미리보기 — A4 가로 {2 + phases.length * 2}쪽</b>
         <span className="flex-1" />
-        <Button size="sm" variant="primary" onClick={() => window.print()}>인쇄 · PDF로 저장</Button>
+        {printable ? (
+          <Button size="sm" variant="primary" onClick={() => window.print()}>인쇄 · PDF로 저장</Button>
+        ) : (
+          <span className="text-xs text-stone-500">링크로 연 화면에서는 인쇄가 안 돼요. PNG로 저장하세요.</span>
+        )}
         <Button size="sm" onClick={savePngs} disabled={busy}>{busy ? 'PNG 만드는 중…' : 'PNG 일괄 저장'}</Button>
         <Button size="sm" variant="ghost" onClick={onClose}>닫기</Button>
       </div>

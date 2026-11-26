@@ -34,8 +34,9 @@ export function BackupBanner() {
         size="sm"
         variant="primary"
         onClick={async () => {
-          const name = await exportToFile('all');
-          toast(`백업 파일을 저장했어요: ${name}`);
+          const r = await exportToFile('all');
+          if (r.ok) toast(`백업 파일을 저장했어요: ${r.name}`);
+          else toast(r.message, r.reason === 'declined' ? 'info' : 'error');
         }}
       >
         지금 전체 백업

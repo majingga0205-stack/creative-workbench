@@ -49,8 +49,9 @@ function ExportCard() {
 
   const run = async () => {
     try {
-      const name = await exportToFile(scope, scope === 'work' ? effectiveWorkId : undefined);
-      toast(`내보냈어요: ${name}`);
+      const r = await exportToFile(scope, scope === 'work' ? effectiveWorkId : undefined);
+      if (r.ok) toast(`내보냈어요: ${r.name}`);
+      else toast(r.message, r.reason === 'declined' ? 'info' : 'error');
     } catch (e) {
       toast(`내보내지 못했어요: ${(e as Error).message}`, 'error');
     }
@@ -142,10 +143,28 @@ function ImportCard() {
     if (!ok) return;
     setBusy(true);
     try {
-      const backupName = await autoBackupToFile();
+      const backup = await autoBackupToFile();
+      if (!backup.ok) {
+        // 자동 백업 파일이 저장되지 않았으면(취소 등) 그대로 진행하지 않고 한 번 더 묻는다
+        const go = await confirmDialog({
+          title: '자동 백업 파일을 저장하지 못했어요',
+          message: (
+            <>
+              <p>{backup.message}.</p>
+              <p className="mt-2">백업 없이 불러오면 지금 데이터로 되돌릴 수 없어요.</p>
+            </>
+          ),
+          confirmLabel: '백업 없이 불러오기',
+          danger: true,
+        });
+        if (!go) {
+          toast('불러오기를 멈췄어요. 데이터는 바뀌지 않았어요.');
+          return;
+        }
+      }
       const res = await applyImport(envelope, mode);
       toast(
-        `불러왔어요: ${res.written}개 저장${res.removed ? `, ${res.removed}개 교체` : ''}${res.keptLocal ? `, 충돌 ${res.keptLocal}개는 이 기기 것 유지` : ''}. 자동 백업: ${backupName}`,
+        `불러왔어요: ${res.written}개 저장${res.removed ? `, ${res.removed}개 교체` : ''}${res.keptLocal ? `, 충돌 ${res.keptLocal}개는 이 기기 것 유지` : ''}. 자동 백업: ${backup.ok ? backup.name : '없음'}`,
       );
       setLoaded(null);
     } catch (e) {
