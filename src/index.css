@@ -22,3 +22,42 @@ body {
   line-height: 1.85;
   tab-size: 4;
 }
+
+/* 보스 기획서: A4 가로 인쇄 (8단계) */
+@page {
+  size: A4 landscape;
+  margin: 0;
+}
+.plan-page {
+  width: 297mm;
+  height: 210mm;
+  padding: 12mm;
+  box-sizing: border-box;
+  background: #fff;
+  overflow: hidden;
+  break-after: page;
+  page-break-after: always;
+}
+@media print {
+  body.plan-open {
+    background: #fff;
+  }
+  body.plan-open > #root {
+    display: none !important;
+  }
+  .plan-root {
+    position: static !important;
+    overflow: visible !important;
+    background: #fff !important;
+    padding: 0 !important;
+  }
+  .plan-root > div {
+    gap: 0 !important;
+  }
+  .plan-toolbar {
+    display: none !important;
+  }
+  .plan-page {
+    box-shadow: none !important;
+  }
+}

@@ -1,5 +1,7 @@
 // 보스 페이즈 설계 보드 (SPEC 모듈 E) — 7단계: 카드·타이밍·곡선 (2D 미리보기·검사·기획서는 8단계)
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { parseBossFile } from '../../db/bossFile';
+import { toast } from '../../shared/dialogs';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/database';
 import { readSetting } from '../../db/meta';
@@ -16,6 +18,7 @@ export default function BossModule() {
   const settingRows = useLiveQuery(() => db.settings.toArray(), []);
   const [selected, setSelected] = useState<string | null>(null);
   const [name, setName] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
 
   if (work === undefined || !bosses || !characters || !settingRows) return null;
   if (work === null) return <NoWork />;
@@ -39,13 +42,31 @@ export default function BossModule() {
             {b.name || '(이름 없음)'}
           </Button>
         ))}
-        <form className="ml-auto flex gap-1.5" onSubmit={(e) => { e.preventDefault(); void create(); }}>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".json,application/json"
+          className="hidden"
+          data-testid="boss-file-input"
+          onChange={async (e) => {
+            const f = e.target.files?.[0];
+            e.target.value = '';
+            if (!f) return;
+            const r = parseBossFile(await f.text(), { workId: work.id, characterIds: characters.map((c) => c.id), existingNames: bosses.map((x) => x.name), newId });
+            if (!r.ok) return toast(r.error, 'error');
+            await saveBoss(r.boss);
+            setSelected(r.boss.id);
+            toast(`보스를 불러왔어요: ${r.boss.name}`);
+          }}
+        />
+        <Button size="sm" variant="ghost" className="ml-auto" onClick={() => fileRef.current?.click()}>보스 JSON 불러오기</Button>
+        <form className="flex gap-1.5" onSubmit={(e) => { e.preventDefault(); void create(); }}>
           <Input aria-label="새 보스 이름" className="!w-48" placeholder="새 보스 이름" value={name} onChange={(e) => setName(e.target.value)} />
           <Button type="submit" disabled={!name.trim()}>보스 만들기</Button>
         </form>
       </div>
       {current ? (
-        <BossEditor key={current.id} boss={current} characters={characters} settings={readSetting(settingRows, 'boss.pressure')} onDeleted={() => setSelected(null)} />
+        <BossEditor key={current.id} boss={current} characters={characters} settings={readSetting(settingRows, 'boss.pressure')} workTitle={work.title} onDeleted={() => setSelected(null)} />
       ) : (
         <Empty title="아직 보스가 없어요">이름을 넣고 ‘보스 만들기’를 누르세요. 페이즈 하나로 시작해요.</Empty>
       )}

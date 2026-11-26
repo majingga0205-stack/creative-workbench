@@ -24,9 +24,13 @@ import { Badge, Button, Card, Field, Input, SaveStatus, Select, TextArea } from 
 import { C, ChartBox, LegendDot, TooltipBox, axisProps } from '../serial/charts';
 import { NumberField, SEGMENT_STYLE, Timeline, TimingBar } from './parts';
 import { PreviewCard } from './Preview';
+import { BossPlan } from './BossPlan';
+import { buildBossFile } from '../../db/bossFile';
+import { downloadText } from '../../shared/files';
 
-export function BossEditor({ boss, characters, settings, onDeleted }: { boss: Boss; characters: Character[]; settings: PressureSettings; onDeleted: () => void }) {
+export function BossEditor({ boss, characters, settings, workTitle, onDeleted }: { boss: Boss; characters: Character[]; settings: PressureSettings; workTitle: string; onDeleted: () => void }) {
   const [b, setB] = useState<Boss>(boss);
+  const [planOpen, setPlanOpen] = useState(false);
   const { status } = useAutosave(b, saveBoss, { valid: b.name.trim().length > 0 });
   const phases = useMemo(() => [...b.phases].sort((x, y) => x.order - y.order), [b.phases]);
   const [sel, setSel] = useState<string | null>(phases[0]?.id ?? null);
@@ -119,9 +123,20 @@ export function BossEditor({ boss, characters, settings, onDeleted }: { boss: Bo
       {selPhase && <PatternEditor key={selPhase.id} phase={selPhase} settings={settings} onChange={(patch) => updPhase(selPhase.id, patch)} />}
       {selPhase && <PreviewCard boss={b} phase={selPhase} />}
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button size="sm" variant="primary" onClick={() => setPlanOpen(true)}>기획서 보기 · 인쇄</Button>
+        <Button
+          size="sm"
+          onClick={() => {
+            downloadText(`보스-${b.name.replace(/[\\/:*?"<>|\s]+/g, '_')}.json`, JSON.stringify(buildBossFile(b), null, 2));
+            toast('보스 하나를 JSON으로 내보냈어요');
+          }}
+        >
+          보스 JSON 내보내기
+        </Button>
         <Button variant="danger" size="sm" onClick={remove}>보스 지우기</Button>
       </div>
+      {planOpen && <BossPlan boss={b} workTitle={workTitle} characters={characters} settings={settings} onClose={() => setPlanOpen(false)} />}
     </div>
   );
 }

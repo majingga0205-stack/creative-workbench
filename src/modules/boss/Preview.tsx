@@ -110,7 +110,7 @@ export function PreviewCard({ boss, phase }: { boss: Pick<Boss, 'arena' | 'playe
           <Button size="sm" variant="primary" onClick={() => setPlaying(!playing)}>{playing ? '일시정지' : '재생'}</Button>
           <Button size="sm" disabled={playing} onClick={() => { step(); draw(); }}>한 프레임</Button>
           <Button size="sm" onClick={reset}>처음부터</Button>
-          <Select aria-label="속도" className="!w-20 !py-1" value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
+          <Select aria-label="재생 속도" className="!w-20 !py-1" value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
             {SPEEDS.map((s) => <option key={s} value={s}>{s}×</option>)}
           </Select>
         </span>
