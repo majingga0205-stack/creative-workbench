@@ -216,6 +216,7 @@ export function CheckTab({
           <div className="min-w-0 space-y-3">
             {activeItem && (
               <FindingCard
+                chapter={mode === 'chapters' ? chapters.find((c) => c.id === activeItem.chapterId) : undefined}
                 f={activeItem}
                 entry={activeItem.source === 'era' ? entryById.get(activeItem.entryId) : undefined}
                 term={activeItem.source === 'glossary' ? glossary.find((g) => g.id === activeItem.entryId) : undefined}
@@ -316,7 +317,8 @@ function Highlighted({ refEl, text, items, activeKey, onPick }: { refEl: React.R
   );
 }
 
-function FindingCard({ f, entry, term, work, canResolve }: { f: Item; entry?: LintEntry; term?: GlossaryEntry; work: Work; canResolve: boolean }) {
+function FindingCard({ f, entry, term, work, canResolve, chapter }: { f: Item; entry?: LintEntry; term?: GlossaryEntry; work: Work; canResolve: boolean; chapter?: Chapter }) {
+  const jump = useUI((s) => s.jumpToChapterText);
   const resolve = async (status: '의도함' | '무시', scope: LintResolution['scope']) => {
     // 같은 자리·범위의 예전 기록은 바꾼다
     const old = await db.lintResolutions.where('workId').equals(work.id).filter((r) => r.ruleKey === f.ruleKey && r.scope === scope && (scope === 'work' || r.chapterId === f.chapterId) && (scope !== 'position' || r.context === f.context)).toArray();
@@ -356,6 +358,11 @@ function FindingCard({ f, entry, term, work, canResolve }: { f: Item; entry?: Li
             {term.status === '금지' ? `이 세계에 없는 말이에요.${term.replacement ? ` 대체어: ${term.replacement}` : ''}` : `정식 표기는 ‘${term.canonical}’예요.`}
             {term.note && <span className="block text-stone-500">{term.note}</span>}
           </p>
+        )}
+        {chapter && (
+          <Button size="sm" variant="secondary" onClick={() => jump({ chapterId: chapter.id, versionId: activeVersion(chapter).id, start: f.start, end: f.end, label: `고증 지적 ‘${f.text}’ (${chapterLabel(chapter)})` })}>
+            회차 원고에서 고치기 →
+          </Button>
         )}
         {canResolve ? (
           <div className="flex flex-wrap items-center gap-1.5 pt-1">

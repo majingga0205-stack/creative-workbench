@@ -23,6 +23,7 @@ import { useAutosave } from '../../shared/useAutosave';
 import { Badge, Button, Card, Field, Input, SaveStatus, Select, TextArea } from '../../shared/ui';
 import { C, ChartBox, LegendDot, TooltipBox, axisProps } from '../serial/charts';
 import { NumberField, SEGMENT_STYLE, Timeline, TimingBar } from './parts';
+import { useUI } from '../../store/ui';
 import { PreviewCard } from './Preview';
 import { BossPlan } from './BossPlan';
 import { buildBossFile } from '../../db/bossFile';
@@ -31,6 +32,7 @@ import { downloadText } from '../../shared/files';
 export function BossEditor({ boss, characters, settings, workTitle, onDeleted }: { boss: Boss; characters: Character[]; settings: PressureSettings; workTitle: string; onDeleted: () => void }) {
   const [b, setB] = useState<Boss>(boss);
   const [planOpen, setPlanOpen] = useState(false);
+  const { openCharacter, setView } = useUI();
   const { status } = useAutosave(b, saveBoss, { valid: b.name.trim().length > 0 });
   const phases = useMemo(() => [...b.phases].sort((x, y) => x.order - y.order), [b.phases]);
   const [sel, setSel] = useState<string | null>(phases[0]?.id ?? null);
@@ -60,10 +62,17 @@ export function BossEditor({ boss, characters, settings, workTitle, onDeleted }:
             <Input value={b.name} onChange={(e) => setB({ ...b, name: e.target.value })} />
           </Field>
           <Field label="보스 주인 (캐릭터)">
-            <Select value={b.characterId ?? ''} onChange={(e) => setB({ ...b, characterId: e.target.value || undefined })}>
-              <option value="">없음</option>
-              {characters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </Select>
+            <div className="flex gap-1.5">
+              <Select value={b.characterId ?? ''} onChange={(e) => setB({ ...b, characterId: e.target.value || undefined })}>
+                <option value="">없음</option>
+                {characters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </Select>
+              {b.characterId && (
+                <Button size="sm" className="!h-[34px]" onClick={() => { openCharacter(b.characterId); setView('characters'); }} title="캐릭터 카드 열기">
+                  카드 →
+                </Button>
+              )}
+            </div>
           </Field>
         </div>
         <details className="mt-3">

@@ -1,5 +1,5 @@
 // 공용 화면 조각
-import type { ComponentProps, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import type { ComponentProps, ReactNode, SelectHTMLAttributes } from 'react';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
@@ -43,11 +43,11 @@ export function Field({ label, hint, error, children }: { label: string; hint?: 
 const inputCls =
   'w-full rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-sm outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 disabled:bg-stone-100';
 
-export function Input({ className = '', ...rest }: InputHTMLAttributes<HTMLInputElement>) {
+export function Input({ className = '', ...rest }: ComponentProps<'input'>) {
   return <input className={`${inputCls} ${className}`} {...rest} />;
 }
 
-export function TextArea({ className = '', ...rest }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function TextArea({ className = '', ...rest }: ComponentProps<'textarea'>) {
   return <textarea className={`${inputCls} ${className}`} {...rest} />;
 }
 

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/database';
 import { createChapter, deleteChapter, makeVersion, nextChapterNumber, updateChapter } from '../../db/repo';
@@ -178,7 +178,10 @@ function ChapterEditor({ chapter, siblings }: { chapter: Chapter; siblings: Chap
   const numOk = meta.number.trim() !== '' && Number.isFinite(Number(meta.number));
   const { status } = useAutosave(meta, saveMeta, { valid: numOk });
   const dup = numOk && siblings.some((c) => c.id !== chapter.id && c.number === Number(meta.number));
-  const [viewId, setViewId] = useState(chapter.activeVersionId);
+  const pending = useUI((s) => s.pendingSelection);
+  const [viewId, setViewId] = useState(() =>
+    pending?.chapterId === chapter.id && chapter.versions.some((v) => v.id === pending.versionId) ? pending.versionId : chapter.activeVersionId,
+  );
   const version = chapter.versions.find((v) => v.id === viewId) ?? chapter.versions.find((v) => v.id === chapter.activeVersionId)!;
   const fileRef = useRef<HTMLInputElement>(null);
   const openChapter = useUI((s) => s.openChapter);
@@ -330,6 +333,23 @@ function VersionEditor({
     text: version.text,
   }));
   const { status } = useAutosave(draft, saveVersion);
+  const area = useRef<HTMLTextAreaElement>(null);
+  const pending = useUI((s) => s.pendingSelection);
+  const clearPending = useUI((s) => s.clearPendingSelection);
+  const [jumped, setJumped] = useState<string | null>(null);
+  // 다른 모듈(고증 린터)의 지적에서 왔으면 원문 start/end를 골라 보여준다
+  useEffect(() => {
+    const ta = area.current;
+    if (!ta || !pending || pending.chapterId !== chapterId || pending.versionId !== version.id) return;
+    ta.focus();
+    ta.setSelectionRange(pending.start, pending.end);
+    // 고른 자리가 보이도록 줄 수로 대략 스크롤한다
+    const lineHeight = parseFloat(getComputedStyle(ta).lineHeight) || 24;
+    const lines = ta.value.slice(0, pending.start).split('\n').length;
+    ta.scrollTop = Math.max(0, lines * lineHeight - ta.clientHeight / 2);
+    setJumped(pending.label);
+    clearPending();
+  }, [pending, chapterId, version.id, clearPending]);
 
   return (
     <div>
@@ -356,7 +376,13 @@ function VersionEditor({
           버전 지우기
         </Button>
       </div>
+      {jumped && (
+        <p className="mb-2 rounded-md bg-teal-50 px-3 py-1.5 text-sm text-teal-900" role="status" data-testid="jump-notice">
+          {jumped} — 원고에서 그 자리를 골라 두었어요.
+        </p>
+      )}
       <TextArea
+        ref={area}
         aria-label="원고 본문"
         className="manuscript min-h-[60vh] resize-y"
         value={draft.text}

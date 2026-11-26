@@ -12,8 +12,15 @@ export type View =
   | 'boss'
   | 'settings';
 
+/** 다른 모듈에서 '회차 원고의 그 자리'로 갈 때 고를 범위 (원문 start/end) */
+export type PendingSelection = { chapterId: string; versionId: string; start: number; end: number; label: string };
+
 type UIState = {
   view: View;
+  pendingSelection?: PendingSelection;
+  /** 회차 원고 편집 화면을 열고 그 버전의 start~end를 골라 둔다 */
+  jumpToChapterText: (sel: PendingSelection) => void;
+  clearPendingSelection: () => void;
   workId?: string;
   chapterId?: string;
   characterId?: string;
@@ -32,6 +39,8 @@ export const useUI = create<UIState>()(
   persist(
     (set) => ({
       view: 'work',
+      jumpToChapterText: (sel) => set({ chapterId: sel.chapterId, view: 'chapters', pendingSelection: sel }),
+      clearPendingSelection: () => set({ pendingSelection: undefined }),
       lintEra: true,
       lintGlossary: false,
       setLintOptions: (o) => set(o),

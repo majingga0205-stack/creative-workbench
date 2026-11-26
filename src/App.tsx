@@ -23,12 +23,12 @@ const WORK_NAV: { view: View; label: string }[] = [
   { view: 'chapters', label: '회차 원고' },
 ];
 
-const MODULE_NAV: { view: View; label: string; stage: string }[] = [
-  { view: 'lint', label: '시대 고증 린터', stage: '4' },
-  { view: 'network', label: '인물 네트워크', stage: '5' },
-  { view: 'serial', label: '연재 실험실', stage: '3' },
-  { view: 'myth', label: '신화 원형 아카이브', stage: '6' },
-  { view: 'boss', label: '보스 페이즈 설계 보드', stage: '7·8' },
+const MODULE_NAV: { view: View; label: string }[] = [
+  { view: 'lint', label: '시대 고증 린터' },
+  { view: 'network', label: '인물 네트워크' },
+  { view: 'serial', label: '연재 실험실' },
+  { view: 'myth', label: '신화 원형 아카이브' },
+  { view: 'boss', label: '보스 페이즈 설계 보드' },
 ];
 
 const PAGES: Record<View, () => ReactNode> = {
@@ -81,7 +81,6 @@ export default function App() {
             {MODULE_NAV.map((n) => (
               <NavItem key={n.view} active={view === n.view} onClick={() => setView(n.view)}>
                 <span className="flex-1 truncate">{n.label}</span>
-                <span className="text-[10px] text-stone-400">{n.stage}단계</span>
               </NavItem>
             ))}
           </NavGroup>
