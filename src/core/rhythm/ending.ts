@@ -18,7 +18,7 @@ export type EndingEstimate = {
  */
 export function estimateEnding(text: string, options: RhythmOptions = {}): EndingEstimate | null {
   const th = resolveThresholds(options.thresholds);
-  const split = { sceneBreakSymbols: options.sceneBreakSymbols };
+  const split = { sceneBreakSymbols: options.sceneBreakSymbols, quotatives: options.quotatives };
   const sentences = splitSentences(text, split);
   const paragraphs = splitParagraphs(text, { ...split, mode: options.paragraphMode });
   if (!sentences.length || !paragraphs.length) return null;

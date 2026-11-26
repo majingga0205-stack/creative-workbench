@@ -103,3 +103,8 @@ it('존재 이름·별칭이 들어 있나', () => {
   expect(beingMentioned(being('seed-sangun'), '호랑이 혼을 받은 산사람')).toBe(true);
   expect(beingMentioned(gumiho, '여우 같은 사람')).toBe(false);
 });
+
+it('조사 목록 설정이 특성 대조에 반영된다 (9단계)', () => {
+  expect(compareCharacter(dokkaebi, ['씨름을 좋아함'], '').cells.kept.map((x) => x.element.id)).toEqual(['dokkaebi-wrestling']);
+  expect(compareCharacter(dokkaebi, ['씨름을 좋아함'], '', {}, { josa: ['이'] }).cells.kept).toEqual([]);
+});

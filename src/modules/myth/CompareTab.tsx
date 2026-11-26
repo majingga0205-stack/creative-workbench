@@ -7,6 +7,7 @@ import type { Being, Character, ElementChoice } from '../../db/types';
 import { useAutosave } from '../../shared/useAutosave';
 import { Badge, Button, Card, Empty, Field, Input, SaveStatus, Select, TextArea, parseList } from '../../shared/ui';
 import { useUI } from '../../store/ui';
+import { useTextRules } from '../../shared/useTextRules';
 
 const CHOICES: ElementChoice[] = ['가져옴', '변형함', '버림', '충돌'];
 
@@ -61,7 +62,8 @@ function TraitsEditor({ character }: { character: Character }) {
 }
 
 function Result({ character, being }: { character: Character; being: Being }) {
-  const r = compareCharacter(being, character.traits, character.note, character.archetypeChoices);
+  const rules = useTextRules();
+  const r = compareCharacter(being, character.traits, character.note, character.archetypeChoices, { josa: rules?.josa });
   const set = (id: string, patch: { choice?: ElementChoice | null; intended?: boolean }) => setElementChoice(character.id, id, patch);
   return (
     <>

@@ -1,6 +1,6 @@
 import { db as defaultDb, type WorkbenchDB } from './database';
 import { DEFAULT_RHYTHM_THRESHOLDS, type RhythmThresholds } from '../core/rhythm/types';
-import type { ParagraphMode } from '../core/korean';
+import { DEFAULT_JOSA, DEFAULT_QUOTATIVES, DEFAULT_SCENE_BREAK_SYMBOLS, type ParagraphMode } from '../core/korean';
 import { DEFAULT_PRESSURE, type PressureSettings } from '../core/boss/pressure';
 import type { Setting, WorkSetting } from './types';
 
@@ -37,6 +37,12 @@ type SettingValues = {
   'network.recentChapters': number;
   /** 보스 보드: 압박도 가중치·기준값 */
   'boss.pressure': PressureSettings;
+  /** 한국어 텍스트 규칙: 허용 조사 목록 (SPEC '조사 목록은 설정에서 고칠 수 있다') */
+  'text.josa': string[];
+  /** 한국어 텍스트 규칙: 장면 구분 기호 (한 글자씩) */
+  'text.sceneBreakSymbols': string[];
+  /** 한국어 텍스트 규칙: 닫는 따옴표 뒤 인용 표현 */
+  'text.quotatives': string[];
 };
 
 export const SETTING_DEFAULTS: SettingValues = {
@@ -55,6 +61,9 @@ export const SETTING_DEFAULTS: SettingValues = {
   'network.sameParagraphBonus': 0,
   'network.recentChapters': 5,
   'boss.pressure': DEFAULT_PRESSURE,
+  'text.josa': [...DEFAULT_JOSA],
+  'text.sceneBreakSymbols': [...DEFAULT_SCENE_BREAK_SYMBOLS],
+  'text.quotatives': [...DEFAULT_QUOTATIVES],
 };
 
 export type SettingKey = keyof SettingValues;

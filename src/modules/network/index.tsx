@@ -21,6 +21,7 @@ import {
   type NetworkData,
 } from '../../core/network';
 import { NoWork, useCurrentWork } from '../../app/pages/WorkInfoPage';
+import { textRulesOf, type TextRules } from '../../shared/useTextRules';
 import { NetworkGraph, type GraphEdge, type GraphNode, type NetworkGraphHandle } from '../../shared/NetworkGraph';
 import { toast } from '../../shared/dialogs';
 import { Badge, Button, Card, Empty, PageHeader, Select } from '../../shared/ui';
@@ -65,6 +66,7 @@ export default function NetworkModule() {
           per={readSetting(settingRows, 'network.paragraphsPerScene')}
           bonus={readSetting(settingRows, 'network.sameParagraphBonus')}
           recent={readSetting(settingRows, 'network.recentChapters')}
+          rules={textRulesOf(settingRows)}
           workTitle={work.title}
         />
       )}
@@ -81,6 +83,7 @@ function NetworkView({
   per,
   bonus,
   recent,
+  rules,
 }: {
   workId: string;
   workTitle: string;
@@ -90,6 +93,7 @@ function NetworkView({
   per: number;
   bonus: number;
   recent: number;
+  rules: TextRules;
 }) {
   const numbers = chapters.map((c) => c.number);
   const [from, setFrom] = useState(numbers[0]);
@@ -108,11 +112,11 @@ function NetworkView({
     const base = aggregate(
       inRange.map((c) => ({ id: c.id, number: c.number, text: activeVersion(c).text })),
       characters.map((c) => ({ id: c.id, name: c.name, aliases: c.aliases, nameRequiredAliases: c.nameRequiredAliases })),
-      novelSource({ paragraphsPerScene: per }),
-      { sameParagraphBonus: bonus },
+      novelSource({ paragraphsPerScene: per, sceneBreakSymbols: rules.sceneBreakSymbols }),
+      { sameParagraphBonus: bonus, josa: rules.josa },
     );
     return applyEdits(base, edits.map((e) => ({ a: e.a, b: e.b, action: e.action, label: e.label })));
-  }, [inRange, characters, edits, per, bonus]);
+  }, [inRange, characters, edits, per, bonus, rules]);
 
   const cs = useMemo(() => computeCentrality(data), [data]);
   const csById = useMemo(() => new Map(cs.map((c) => [c.id, c])), [cs]);

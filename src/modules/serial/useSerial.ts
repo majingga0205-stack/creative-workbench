@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/database';
 import { readSetting } from '../../db/meta';
+import { textRulesOf } from '../../shared/useTextRules';
 import type { Chapter, ChapterVersion, ReaderSnapshot } from '../../db/types';
 import { computeRhythm, pickValues, type ChapterRow, type RhythmMetrics, type RhythmOptions } from '../../core/rhythm';
 
@@ -14,7 +15,8 @@ export function useSerialSettings() {
     const paragraphMode = readSetting(rows, 'serial.paragraphMode');
     const readerMetrics = readSetting(rows, 'serial.readerMetrics');
     const retentionMetric = readSetting(rows, 'serial.retentionMetric');
-    const rhythmOptions: RhythmOptions = { thresholds, paragraphMode };
+    const text = textRulesOf(rows);
+    const rhythmOptions: RhythmOptions = { thresholds, paragraphMode, sceneBreakSymbols: text.sceneBreakSymbols, quotatives: text.quotatives };
     return { thresholds, paragraphMode, readerMetrics, retentionMetric, rhythmOptions };
   }, [rows]);
 }

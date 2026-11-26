@@ -42,6 +42,8 @@ export type RhythmOptions = {
   thresholds?: Partial<RhythmThresholds>;
   paragraphMode?: ParagraphMode;
   sceneBreakSymbols?: readonly string[];
+  /** 닫는 따옴표 뒤 인용 표현 (문장 분리) */
+  quotatives?: readonly string[];
 };
 
 export type SentenceStat = {

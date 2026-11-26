@@ -8,6 +8,7 @@ import { toast } from '../../shared/dialogs';
 import { downloadText } from '../../shared/files';
 import { Badge, Button, Card, Empty, Input, Select, TextArea } from '../../shared/ui';
 import { useUI } from '../../store/ui';
+import { useTextRules } from '../../shared/useTextRules';
 import { activeVersion, chapterLabel } from '../serial/useSerial';
 import { eraOf, eraText, useEraPresets } from './useLint';
 
@@ -46,7 +47,8 @@ export function CheckTab({
   const textRef = useRef<HTMLDivElement>(null);
 
   const entryById = useMemo(() => new Map(entries.map((e) => [e.id, e])), [entries]);
-  const opts = { era: lintEra, glossary: lintGlossary };
+  const rules = useTextRules();
+  const opts = { era: lintEra, glossary: lintGlossary, josa: rules?.josa };
 
   const targets = useMemo(() => {
     if (mode === 'paste') {
@@ -66,7 +68,7 @@ export function CheckTab({
         })),
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [targets, entries, glossary, resolutions, lintEra, lintGlossary, mode],
+    [targets, entries, glossary, resolutions, lintEra, lintGlossary, mode, rules],
   );
 
   const visible = items.filter(

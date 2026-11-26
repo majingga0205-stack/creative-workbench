@@ -39,7 +39,7 @@ export function resolveThresholds(t?: Partial<RhythmThresholds>): RhythmThreshol
 
 export function computeRhythm(text: string, options: RhythmOptions = {}): RhythmMetrics {
   const th = resolveThresholds(options.thresholds);
-  const split = { sceneBreakSymbols: options.sceneBreakSymbols };
+  const split = { sceneBreakSymbols: options.sceneBreakSymbols, quotatives: options.quotatives };
 
   const sentences: SentenceStat[] = splitSentences(text, split).map((s) => {
     const e = sentenceEnding(s.text);

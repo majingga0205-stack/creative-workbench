@@ -1,13 +1,13 @@
 // 내 캐릭터 대조·보존도·고증 함정 (SPEC 모듈 D). 순수 함수, React·Dexie를 import하지 않는다.
-import { findTerm, type MatchMode } from '../korean';
+import { findTerm, type MatchMode, type MatchOptions } from '../korean';
 import type { ArchetypeChoices, ArchetypeElement, Being, ElementChoice, ElementWeight, Trap } from '../../db/types';
 
 export const WEIGHT: Record<ElementWeight, number> = { core: 3, common: 2, variant: 1 };
 export const WEIGHT_LABEL: Record<ElementWeight, string> = { core: '핵심', common: '흔함', variant: '일부 판본' };
 
 /** 말 목록 중 글에 나오는 것 (조사 인식 매처) */
-function wordsIn(text: string, words: string[], mode: MatchMode): string[] {
-  return words.filter((w) => w.trim() && findTerm(text, { term: w.trim(), mode }).length > 0);
+function wordsIn(text: string, words: string[], mode: MatchMode, options: MatchOptions = {}): string[] {
+  return words.filter((w) => w.trim() && findTerm(text, { term: w.trim(), mode }, options).length > 0);
 }
 
 export type ElementRow = {
@@ -44,15 +44,15 @@ export type Comparison = {
  * - 요소의 keywords·opposite는 특성마다 조사 인식 매처(word 모드)로 찾는다
  * - 함정 triggerWords는 특성과 메모에서 prefix 모드로 찾는다 (‘뿔이’, ‘호피무늬’도 잡도록)
  */
-export function compareCharacter(being: Being, traits: string[], note: string, choices: ArchetypeChoices = {}): Comparison {
+export function compareCharacter(being: Being, traits: string[], note: string, choices: ArchetypeChoices = {}, options: MatchOptions = {}): Comparison {
   const usedTraits = new Set<string>();
   const rows: ElementRow[] = being.elements.map((element) => {
-    const kwTraits = traits.filter((t) => wordsIn(t, element.keywords, 'word').length);
-    const opTraits = traits.filter((t) => wordsIn(t, element.opposite, 'word').length);
+    const kwTraits = traits.filter((t) => wordsIn(t, element.keywords, 'word', options).length);
+    const opTraits = traits.filter((t) => wordsIn(t, element.opposite, 'word', options).length);
     [...kwTraits, ...opTraits].forEach((t) => usedTraits.add(t));
     let suggestion: ElementRow['suggestion'];
-    if (opTraits.length) suggestion = { choice: '충돌', traits: opTraits, words: opTraits.flatMap((t) => wordsIn(t, element.opposite, 'word')) };
-    else if (kwTraits.length) suggestion = { choice: '가져옴', traits: kwTraits, words: kwTraits.flatMap((t) => wordsIn(t, element.keywords, 'word')) };
+    if (opTraits.length) suggestion = { choice: '충돌', traits: opTraits, words: opTraits.flatMap((t) => wordsIn(t, element.opposite, 'word', options)) };
+    else if (kwTraits.length) suggestion = { choice: '가져옴', traits: kwTraits, words: kwTraits.flatMap((t) => wordsIn(t, element.keywords, 'word', options)) };
     const c = choices[element.id] ?? {};
     return {
       element,
@@ -72,7 +72,7 @@ export function compareCharacter(being: Being, traits: string[], note: string, c
 
   const text = [...traits, note].join('\n');
   const traps = being.traps
-    .map((trap) => ({ trap, words: wordsIn(text, trap.triggerWords, 'prefix') }))
+    .map((trap) => ({ trap, words: wordsIn(text, trap.triggerWords, 'prefix', options) }))
     .filter((h) => h.words.length > 0);
 
   return {

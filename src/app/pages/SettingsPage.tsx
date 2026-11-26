@@ -15,6 +15,7 @@ import { SerialSettingsCard } from '../../modules/serial/SerialSettingsCard';
 import { LintSettingsCard } from '../../modules/lint/LintSettingsCard';
 import { NetworkSettingsCard } from '../../modules/network/NetworkSettingsCard';
 import { BossSettingsCard } from '../../modules/boss/BossSettingsCard';
+import { TextRulesCard } from '../../shared/TextRulesCard';
 import { Badge, Button, Card, Field, Input, PageHeader, SaveStatus, Select, formatDateTime } from '../../shared/ui';
 
 export default function SettingsPage() {
@@ -24,6 +25,7 @@ export default function SettingsPage() {
       <ExportCard />
       <ImportCard />
       <ReminderCard />
+      <TextRulesCard />
       <SerialSettingsCard />
       <LintSettingsCard />
       <NetworkSettingsCard />

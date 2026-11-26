@@ -271,3 +271,12 @@ describe('버전 비교', () => {
     expect(sc).toMatchObject({ a: 3, b: 4, delta: 1 });
   });
 });
+
+describe('한국어 텍스트 규칙을 바꾸면 (9단계)', () => {
+  it('장면 구분 기호·인용 표현 설정이 리듬 계산에 반영된다', () => {
+    const t = '가는 왔다.\n###\n‘이상하다.’ 하고 생각했다.';
+    expect(computeRhythm(t).sentences.map((s) => s.text)).toContain('###');
+    const custom = computeRhythm(t, { sceneBreakSymbols: ['#'], quotatives: [] });
+    expect(custom.sentences.map((s) => s.text)).toEqual(['가는 왔다.', '‘이상하다.’', '하고 생각했다.']);
+  });
+});

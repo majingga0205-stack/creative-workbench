@@ -8,6 +8,7 @@ import { findTerm } from '../../core/korean';
 import { formatAppears, validateLintEntry } from '../../core/lint';
 import { confirmDialog, toast } from '../../shared/dialogs';
 import { useAutosave } from '../../shared/useAutosave';
+import { useTextRules } from '../../shared/useTextRules';
 import { Badge, Button, Card, Empty, Field, Input, SaveStatus, Select, TextArea, parseList } from '../../shared/ui';
 
 const REGIONS = ['한반도', '중국', '일본', '서양', '전체'];
@@ -352,7 +353,8 @@ function EntryForm({ entry, isNew, onSaved, onDeleted }: { entry: LintEntry; isN
 /** 예문 테스트 칸: 문장을 넣으면 이 항목이 어디에 매칭되는지 바로 보여준다 */
 function SampleTest({ entry }: { entry: LintEntry }) {
   const [text, setText] = useState('');
-  const matches = text && entry.term ? findTerm(text, { term: entry.term, aliases: entry.aliases, mode: entry.matchMode, exclude: entry.exclude }) : [];
+  const rules = useTextRules();
+  const matches = text && entry.term ? findTerm(text, { term: entry.term, aliases: entry.aliases, mode: entry.matchMode, exclude: entry.exclude }, { josa: rules?.josa }) : [];
   const parts: { t: string; m?: (typeof matches)[number] }[] = [];
   let pos = 0;
   for (const m of matches) {
