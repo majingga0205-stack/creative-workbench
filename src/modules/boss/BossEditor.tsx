@@ -23,6 +23,7 @@ import { useAutosave } from '../../shared/useAutosave';
 import { Badge, Button, Card, Field, Input, SaveStatus, Select, TextArea } from '../../shared/ui';
 import { C, ChartBox, LegendDot, TooltipBox, axisProps } from '../serial/charts';
 import { NumberField, SEGMENT_STYLE, Timeline, TimingBar } from './parts';
+import { PreviewCard } from './Preview';
 
 export function BossEditor({ boss, characters, settings, onDeleted }: { boss: Boss; characters: Character[]; settings: PressureSettings; onDeleted: () => void }) {
   const [b, setB] = useState<Boss>(boss);
@@ -116,6 +117,7 @@ export function BossEditor({ boss, characters, settings, onDeleted }: { boss: Bo
       </div>
 
       {selPhase && <PatternEditor key={selPhase.id} phase={selPhase} settings={settings} onChange={(patch) => updPhase(selPhase.id, patch)} />}
+      {selPhase && <PreviewCard boss={b} phase={selPhase} />}
 
       <div className="flex justify-end">
         <Button variant="danger" size="sm" onClick={remove}>보스 지우기</Button>
